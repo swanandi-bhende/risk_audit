@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -42,6 +41,10 @@
     }
     button.secondary { background: #26364f; color: #e5e7eb; }
     button:disabled { opacity: .6; cursor: wait; }
+    select {
+      background: #0b1120; color: #e5e7eb; border: 1px solid #253149;
+      border-radius: 6px; padding: 5px; font-size: 13px;
+    }
     .status { color: #86efac; }
     .error { color: #fca5a5; }
     table { width: 100%; border-collapse: collapse; margin-top: 12px; }
@@ -52,6 +55,7 @@
     }
     th { color: #9caec8; }
     .scroll { overflow-x: auto; }
+    .empty { color: #9caec8; font-size: 13px; padding-top: 12px; }
     @media (max-width: 600px) { main { padding: 14px; } }
   </style>
 </head>
@@ -68,22 +72,23 @@
         <div class="number" id="apiStatus">Checking…</div>
       </div>
       <div class="card">
-        <div class="muted">TOTAL FINDINGS</div>
-        <div class="number" id="total">—</div>
+        <div class="muted">POSTURE SCORE</div>
+        <div class="number" id="posture">—</div>
+        <div class="muted" id="postureRating"></div>
       </div>
       <div class="card">
         <div class="muted">OPEN FINDINGS</div>
         <div class="number" id="open">—</div>
       </div>
       <div class="card">
-        <div class="muted">DISCOVERED SERVICES</div>
+        <div class="muted">OPEN PORTS (LAST SCAN)</div>
         <div class="number" id="services">—</div>
       </div>
     </section>
 
     <section class="panel">
       <h2>Assessment Controls</h2>
-      <p class="muted">Target: Ubuntu lab server · 192.168.26.10</p>
+      <p class="muted" id="target">Target: loading…</p>
       <button id="scanBtn" onclick="runScan()">Run Nmap Service Scan</button>
       <button class="secondary" onclick="simulate()">Record Test Event</button>
       <button class="secondary" onclick="refreshData()">Refresh Dashboard</button>
@@ -104,29 +109,43 @@
     </section>
 
     <section class="panel">
-      <h2>Open Findings &amp; Assessment Results</h2>
+      <h2>Findings &amp; Assessment Results</h2>
       <div class="scroll">
         <table>
           <thead><tr><th>Asset</th><th>Finding</th><th>Severity</th><th>Status</th></tr></thead>
           <tbody id="findings"></tbody>
         </table>
       </div>
+      <p id="noFindings" class="empty" hidden>No findings yet. Run a scan or record a test event.</p>
     </section>
 
     <section class="panel">
       <h2>Discovered Open Ports</h2>
+      <p class="muted" id="portsTime"></p>
       <div class="scroll">
         <table>
           <thead><tr><th>Port</th><th>Protocol</th><th>Service</th><th>Version</th></tr></thead>
           <tbody id="ports"></tbody>
         </table>
       </div>
+      <p id="noPorts" class="empty" hidden>No scan results yet.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Audit Trail</h2>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Time</th><th>Action</th><th>Details</th></tr></thead>
+          <tbody id="audit"></tbody>
+        </table>
+      </div>
     </section>
   </main>
 
 <script>
-  const API = "http://127.0.0.1:8000";
-  let scanResults = [];
+  // Same origin as the page: the FastAPI server also serves this dashboard.
+  const API = "";
+  const STATUSES = ["Open", "In Progress", "Resolved"];
 
   function cell(value) {
     const td = document.createElement("td");
@@ -136,8 +155,16 @@
 
   function addRow(tbody, values) {
     const tr = document.createElement("tr");
-    values.forEach(value => tr.appendChild(cell(value)));
+    values.forEach(value => tr.appendChild(
+      value instanceof Node ? wrap(value) : cell(value)
+    ));
     tbody.appendChild(tr);
+  }
+
+  function wrap(node) {
+    const td = document.createElement("td");
+    td.appendChild(node);
+    return td;
   }
 
   async function getJSON(path) {
@@ -146,19 +173,59 @@
     return response.json();
   }
 
+  function statusSelect(finding) {
+    const select = document.createElement("select");
+    select.setAttribute("aria-label", `Status for finding ${finding.id}`);
+    STATUSES.forEach(status => {
+      const option = document.createElement("option");
+      option.value = status;
+      option.textContent = status;
+      option.selected = status === finding.status;
+      select.appendChild(option);
+    });
+    select.addEventListener("change", () => updateStatus(finding.id, select.value));
+    return select;
+  }
+
+  async function updateStatus(id, status) {
+    const message = document.getElementById("message");
+    try {
+      const response = await fetch(`${API}/api/findings/${id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status })
+      });
+      if (!response.ok) throw new Error("Could not update status");
+      message.textContent = `Finding #${id} set to ${status}.`;
+      message.className = "status";
+    } catch (error) {
+      message.textContent = error.message;
+      message.className = "error";
+    }
+    await refreshData();
+  }
+
   async function refreshData() {
     const message = document.getElementById("message");
     try {
-      const [health, assets, summary, findings] = await Promise.all([
+      const [health, assets, summary, posture, findings, ports, audit] = await Promise.all([
         getJSON("/api/health"),
         getJSON("/api/assets"),
         getJSON("/api/summary"),
-        getJSON("/api/findings")
+        getJSON("/api/posture"),
+        getJSON("/api/findings"),
+        getJSON("/api/ports"),
+        getJSON("/api/audit")
       ]);
 
       document.getElementById("apiStatus").textContent = health.status;
-      document.getElementById("total").textContent = summary.total_findings;
       document.getElementById("open").textContent = summary.open_findings;
+      document.getElementById("posture").textContent = posture.score;
+      document.getElementById("postureRating").textContent = posture.rating;
+
+      const asset = assets.assets[0];
+      document.getElementById("target").textContent =
+        `Target: ${asset.name} · ${asset.ip}`;
 
       const assetBody = document.getElementById("assets");
       assetBody.replaceChildren();
@@ -169,10 +236,29 @@
       const findingBody = document.getElementById("findings");
       findingBody.replaceChildren();
       findings.findings.forEach(f =>
-        addRow(findingBody, [f.asset, f.title, f.severity, f.status])
+        addRow(findingBody, [f.asset, f.title, f.severity, statusSelect(f)])
+      );
+      document.getElementById("noFindings").hidden = findings.findings.length > 0;
+
+      const portBody = document.getElementById("ports");
+      portBody.replaceChildren();
+      ports.ports.forEach(p =>
+        addRow(portBody, [p.port, p.protocol, p.service, p.version])
+      );
+      document.getElementById("services").textContent = ports.ports.length;
+      document.getElementById("noPorts").hidden = ports.ports.length > 0;
+      document.getElementById("portsTime").textContent = ports.scanned_at
+        ? `Last scan: ${new Date(ports.scanned_at).toLocaleString()}`
+        : "";
+
+      const auditBody = document.getElementById("audit");
+      auditBody.replaceChildren();
+      audit.audit_records.slice(0, 25).forEach(r =>
+        addRow(auditBody, [
+          new Date(r.created_at).toLocaleString(), r.action, r.details
+        ])
       );
 
-      renderPorts();
       message.textContent = "Dashboard data refreshed.";
       message.className = "status";
     } catch (error) {
@@ -182,20 +268,11 @@
     }
   }
 
-  function renderPorts() {
-    const body = document.getElementById("ports");
-    body.replaceChildren();
-    scanResults.forEach(p =>
-      addRow(body, [p.port, p.protocol, p.service, p.version])
-    );
-    document.getElementById("services").textContent = scanResults.length;
-  }
-
   async function runScan() {
     const button = document.getElementById("scanBtn");
     const message = document.getElementById("message");
     button.disabled = true;
-    message.textContent = "Running service scan…";
+    message.textContent = "Running service scan… this can take a minute.";
     message.className = "muted";
 
     try {
@@ -204,9 +281,9 @@
       if (!response.ok || result.status !== "completed") {
         throw new Error(result.message || "Scan failed");
       }
-      scanResults = result.open_ports || [];
-      renderPorts();
-      message.textContent = `Scan completed: ${result.target} is ${result.host_status}.`;
+      message.textContent =
+        `Scan completed: ${result.target} is ${result.host_status}. ` +
+        `${result.open_ports.length} open port(s), ${result.new_findings} new finding(s).`;
       message.className = "status";
       await refreshData();
     } catch (error) {
@@ -225,7 +302,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           event_type: "Repeated failed login",
-          source: "192.168.50.20",
+          source: "192.168.56.1",
           count: 8
         })
       });

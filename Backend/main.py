@@ -1,30 +1,30 @@
-
-from fastapi import HTTPException
+import os
 import subprocess
-import xml.etree.ElementTree as ET
-from pathlib import Path
 import sqlite3
+import xml.etree.ElementTree as ET
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "securetech.db"
+FRONTEND_DIR = BASE_DIR.parent / "Frontend"
 
-app = FastAPI(
-    title="SecureTech Risk Assessment API",
-    description="Cybersecurity assessment for the SecureTech Solutions lab",
-    version="1.0.0",
-)
+# Lab target: the Kali Linux VM on the VirtualBox host-only network.
+# Override with SECURETECH_TARGET=<ip> if the VM gets a different address.
+ASSET_NAME = "SecureTech Kali Lab VM"
+SCAN_TARGET = os.environ.get("SECURETECH_TARGET", "192.168.56.4")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Restrict to the frontend origin before deployment.
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Severity for newly discovered services, based on how often they are abused.
+HIGH_RISK_SERVICES = {"telnet", "ftp", "vnc", "rsh", "rlogin", "rexec"}
+MEDIUM_RISK_SERVICES = {
+    "microsoft-ds", "netbios-ssn", "ms-wbt-server", "mysql",
+    "postgresql", "ms-sql-s", "rpcbind", "msrpc", "nfs",
+}
 
 
 def get_connection():
@@ -56,6 +56,17 @@ def initialize_database():
                 created_at TEXT NOT NULL
             )
         """)
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS scan_ports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                target TEXT NOT NULL,
+                port INTEGER NOT NULL,
+                protocol TEXT NOT NULL,
+                service TEXT NOT NULL,
+                version TEXT NOT NULL,
+                scanned_at TEXT NOT NULL
+            )
+        """)
 
 
 def record_audit(connection, action, details):
@@ -65,9 +76,18 @@ def record_audit(connection, action, details):
     )
 
 
-@app.on_event("startup")
-def startup():
+@asynccontextmanager
+async def lifespan(app):
     initialize_database()
+    yield
+
+
+app = FastAPI(
+    title="SecureTech Risk Assessment API",
+    description="Cybersecurity assessment for the SecureTech Solutions lab",
+    version="1.1.0",
+    lifespan=lifespan,
+)
 
 
 @app.get("/api/health")
@@ -80,10 +100,10 @@ def assets():
     return {
         "assets": [
             {
-                "name": "SecureTech Ubuntu Server",
-                "ip": "192.168.50.10",
-                "type": "Linux server",
-                "environment": "Isolated lab",
+                "name": ASSET_NAME,
+                "ip": SCAN_TARGET,
+                "type": "Linux VM (Kali)",
+                "environment": "Isolated lab (VirtualBox host-only)",
             }
         ]
     }
@@ -122,7 +142,7 @@ def summary():
 
 class SimulatedEvent(BaseModel):
     event_type: str = "Failed login"
-    source: str = "192.168.50.20"
+    source: str = "192.168.56.1"
     count: int = 5
 
 
@@ -143,7 +163,7 @@ def simulate_event(event: SimulatedEvent):
              recommendation, status, created_at)
             VALUES (?, ?, ?, ?, ?, ?, 'Open', ?)""",
             (
-                "SecureTech Ubuntu Server",
+                ASSET_NAME,
                 "Threat simulation",
                 title,
                 "Medium",
@@ -167,24 +187,108 @@ def audit_records():
     return {"audit_records": [dict(row) for row in rows]}
 
 
+def classify_service(service, port):
+    if service in HIGH_RISK_SERVICES:
+        return "High"
+    if service in MEDIUM_RISK_SERVICES:
+        return "Medium"
+    return "Low"
+
+
+def parse_open_ports(xml_text):
+    root = ET.fromstring(xml_text)
+    host = root.find("host")
+    if host is None:
+        return None, None
+
+    status_element = host.find("status")
+    host_status = (
+        status_element.get("state", "unknown")
+        if status_element is not None
+        else "unknown"
+    )
+
+    ports = []
+    for port in host.findall(".//port"):
+        state_element = port.find("state")
+        if state_element is None or state_element.get("state") != "open":
+            continue
+
+        service = port.find("service")
+        ports.append({
+            "port": int(port.get("portid")),
+            "protocol": port.get("protocol"),
+            "service": service.get("name", "unknown")
+            if service is not None else "unknown",
+            "version": service.get("version", "")
+            if service is not None else "",
+        })
+    return host_status, ports
+
+
+def save_scan(connection, ports, scanned_at):
+    """Store the scan's ports and raise one finding per newly seen port."""
+    new_findings = 0
+    for item in ports:
+        connection.execute(
+            """INSERT INTO scan_ports
+            (target, port, protocol, service, version, scanned_at)
+            VALUES (?, ?, ?, ?, ?, ?)""",
+            (SCAN_TARGET, item["port"], item["protocol"],
+             item["service"], item["version"], scanned_at),
+        )
+
+        title = (
+            f"Exposed service: {item['port']}/{item['protocol']} "
+            f"({item['service']})"
+        )
+        already_tracked = connection.execute(
+            """SELECT 1 FROM findings
+            WHERE asset = ? AND title = ? AND status != 'Resolved'""",
+            (ASSET_NAME, title),
+        ).fetchone()
+        if already_tracked:
+            continue
+
+        version = item["version"] or "version not detected"
+        connection.execute(
+            """INSERT INTO findings
+            (asset, category, title, severity, description,
+             recommendation, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, 'Open', ?)""",
+            (
+                ASSET_NAME,
+                "Service discovery",
+                title,
+                classify_service(item["service"], item["port"]),
+                f"Port {item['port']}/{item['protocol']} is open on "
+                f"{SCAN_TARGET} running {item['service']} ({version}).",
+                "Confirm the service is required. If it is not, stop it or "
+                "block the port on the host firewall.",
+                scanned_at,
+            ),
+        )
+        new_findings += 1
+    return new_findings
+
 
 @app.post("/api/scan")
-def scan_ubuntu_server():
-    target = "192.168.26.10"
-
+def scan_lab_target():
     try:
+        # -Pn: the lab VM drops ICMP probes, so skip host discovery.
         result = subprocess.run(
             [
                 "nmap",
+                "-Pn",
                 "-sV",
                 "-T3",
                 "--top-ports", "100",
                 "-oX", "-",
-                target,
+                SCAN_TARGET,
             ],
             capture_output=True,
             text=True,
-            timeout=90,
+            timeout=180,
             check=False,
         )
 
@@ -194,63 +298,42 @@ def scan_ubuntu_server():
                 "message": result.stderr or "Nmap scan failed",
             }
 
-        root = ET.fromstring(result.stdout)
-        host = root.find("host")
-
-        if host is None:
+        host_status, ports = parse_open_ports(result.stdout)
+        if ports is None:
             return {
                 "status": "error",
                 "message": "No host information returned by Nmap",
             }
 
-        status_element = host.find("status")
-        host_status = (
-            status_element.get("state", "unknown")
-            if status_element is not None
-            else "unknown"
-        )
-
-        ports = []
-        for port in host.findall(".//port"):
-            state_element = port.find("state")
-            if state_element is None or state_element.get("state") != "open":
-                continue
-
-            service = port.find("service")
-            ports.append({
-                "port": port.get("portid"),
-                "protocol": port.get("protocol"),
-                "service": service.get("name", "unknown")
-                if service is not None else "unknown",
-                "version": service.get("version", "")
-                if service is not None else "",
-            })
-
+        scanned_at = datetime.now(timezone.utc).isoformat()
         with get_connection() as connection:
+            new_findings = save_scan(connection, ports, scanned_at)
             record_audit(
                 connection,
                 "NMAP_SCAN",
-                f"Scanned authorized lab target {target}; "
-                f"host status={host_status}; open ports={len(ports)}",
+                f"Scanned lab target {SCAN_TARGET}; "
+                f"host status={host_status}; open ports={len(ports)}; "
+                f"new findings={new_findings}",
             )
 
         return {
             "status": "completed",
-            "target": target,
+            "target": SCAN_TARGET,
             "host_status": host_status,
             "open_ports": ports,
+            "new_findings": new_findings,
             "note": "Service discovery only; this is not a full vulnerability scan.",
         }
 
     except FileNotFoundError:
         return {
             "status": "error",
-            "message": "Nmap was not found. Add its installation directory to PATH.",
+            "message": "Nmap was not found. Install it with: brew install nmap",
         }
     except subprocess.TimeoutExpired:
         return {
             "status": "error",
-            "message": "Scan timed out after 90 seconds.",
+            "message": "Scan timed out after 180 seconds.",
         }
     except ET.ParseError:
         return {
@@ -258,6 +341,25 @@ def scan_ubuntu_server():
             "message": "Could not parse Nmap output.",
         }
 
+
+@app.get("/api/ports")
+def latest_ports():
+    with get_connection() as connection:
+        latest = connection.execute(
+            "SELECT MAX(scanned_at) FROM scan_ports WHERE target = ?",
+            (SCAN_TARGET,),
+        ).fetchone()[0]
+        rows = []
+        if latest is not None:
+            rows = connection.execute(
+                """SELECT port, protocol, service, version FROM scan_ports
+                WHERE target = ? AND scanned_at = ? ORDER BY port""",
+                (SCAN_TARGET, latest),
+            ).fetchall()
+    return {
+        "scanned_at": latest,
+        "ports": [dict(row) for row in rows],
+    }
 
 
 # --- Security Posture Score ---
@@ -357,3 +459,8 @@ def update_finding_status(
         "finding_id": finding_id,
         "status": update.status,
     }
+
+
+# Serve the dashboard from the same origin, so no CORS setup is needed.
+# Mounted last so the /api routes above take precedence.
+app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
