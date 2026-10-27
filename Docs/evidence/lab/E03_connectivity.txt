@@ -1,0 +1,24 @@
+# E-03: connectivity
+Tue Oct 27 11:05:22 IST 2026
+## Kali to Metasploitable
+PING 192.168.56.10 (192.168.56.10) 56(84) bytes of data.
+64 bytes from 192.168.56.10: icmp_seq=1 ttl=64 time=8.31 ms
+64 bytes from 192.168.56.10: icmp_seq=2 ttl=64 time=1.94 ms
+64 bytes from 192.168.56.10: icmp_seq=3 ttl=64 time=0.908 ms
+64 bytes from 192.168.56.10: icmp_seq=4 ttl=64 time=1.09 ms
+
+--- 192.168.56.10 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3007ms
+rtt min/avg/max/mdev = 0.908/3.060/8.312/3.056 ms
+## Metasploitable to Kali
+PING 192.168.56.4 (192.168.56.4) 56(84) bytes of data.
+64 bytes from 192.168.56.4: icmp_seq=1 ttl=64 time=0.894 ms
+64 bytes from 192.168.56.4: icmp_seq=2 ttl=64 time=1.31 ms
+64 bytes from 192.168.56.4: icmp_seq=3 ttl=64 time=0.861 ms
+64 bytes from 192.168.56.4: icmp_seq=4 ttl=64 time=3.06 ms
+
+--- 192.168.56.4 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 2997ms
+rtt min/avg/max/mdev = 0.861/1.533/3.064/0.902 ms
+## Kali to Juice Shop host
+HTTP 200

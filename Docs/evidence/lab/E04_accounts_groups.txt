@@ -1,0 +1,9 @@
+# E-04: department accounts and groups (company server)
+Tue Oct 27 11:05:29 IST 2026
+uid=1003(hr_user) gid=1003(hr_user) groups=1003(hr_user),50(staff)
+uid=1004(fin_user) gid=1004(fin_user) groups=1004(fin_user),50(staff)
+uid=1005(dev_user) gid=1005(dev_user) groups=1005(dev_user)
+uid=1006(sales_user) gid=1006(sales_user) groups=1006(sales_user)
+uid=1007(helpdesk01) gid=1007(helpdesk01) groups=1007(helpdesk01)
+uid=1008(admin_it) gid=1008(admin_it) groups=1008(admin_it)
+staff:x:50:hr_user,fin_user

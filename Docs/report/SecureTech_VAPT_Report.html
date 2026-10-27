@@ -2,18 +2,41 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SecureTech Solutions: VAPT Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
 <style>
-body { font-family: Arial, sans-serif; margin: 32px; color: #111; line-height: 1.4; }
-h1 { font-size: 24px; margin-bottom: 4px; }
-h2 { font-size: 18px; margin-top: 28px; border-bottom: 1px solid #999; padding-bottom: 4px; }
-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
-th, td { border: 1px solid #bbb; padding: 5px; text-align: left; vertical-align: top; }
-th { background: #eee; }
-.muted { color: #555; font-size: 12px; }
-@media print { body { margin: 12mm; } h2 { page-break-after: avoid; } }
-</style></head><body>
+:root {
+  --ink: #172121;
+  --slate: #444554;
+  --mist: #7F7B82;
+  --blush: #E5D0CC;
+  --paper: #FBF7F5;
+  --serif: "Instrument Serif", Georgia, serif;
+  --sans: "Instrument Sans", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.55; }
+.sheet { max-width: 980px; margin: 0 auto; padding: 48px 40px 64px; }
+h1 { font-family: var(--serif); font-weight: 400; font-size: 44px; line-height: 1.1; margin: 0 0 8px; }
+h2 { font-family: var(--serif); font-weight: 400; font-size: 28px; line-height: 1.2; margin: 48px 0 12px; padding-top: 16px; border-top: 1px solid var(--blush); }
+p { margin: 0 0 12px; max-width: 72ch; }
+.muted { color: var(--slate); font-size: 14px; }
+.lede { font-size: 17px; color: var(--ink); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0 16px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 8px; border-bottom: 1px solid var(--blush); }
+th { font-weight: 600; color: var(--slate); background: transparent; border-bottom: 1px solid var(--mist); }
+td { overflow-wrap: anywhere; }
+.score { font-family: var(--serif); font-size: 64px; line-height: 1; }
+@media print {
+  body { background: #fff; }
+  .sheet { padding: 0; max-width: none; }
+  h2 { page-break-after: avoid; }
+  table { page-break-inside: auto; }
+  tr { page-break-inside: avoid; }
+}
+</style></head><body><div class="sheet">
 <h1>SecureTech Solutions: Vulnerability Assessment and Compliance Audit Report</h1>
-<p class="muted">Generated 2026-10-27 05:07 UTC. Simulated organization. Lab environment only.</p>
+<p class="muted">Generated 2026-10-27 05:30 UTC. Simulated organization. Lab environment only.</p>
 
 <h2>1. Executive summary</h2>
 <p>SecureTech Solutions was assessed as a simulated 60-employee organization. The assessment
@@ -27,8 +50,8 @@ employee web portal, and disable or restrict the VNC, rsh, rlogin, X11, Samba an
 Anonymous FTP, Telnet and password-free sudo have already been fixed on the company server.</p>
 
 <h2>2. Organization profile</h2>
-<p>SecureTech Solutions: 60 employees in five departments (Management 5, HR 5, Finance 8,
-IT 8, Employees 34). Lab network 192.168.56.0/24 (VirtualBox host-only).
+<p>SecureTech Solutions: 60 employees in five departments
+(Management 5, HR 5, Finance 8, IT 8, Employees 34). Lab network 192.168.56.0/24 (VirtualBox host-only).
 Auditor: Kali Linux (192.168.56.4). Company server: Metasploitable 2 (192.168.56.10).
 Employee web portal: OWASP Juice Shop (192.168.56.1:3000).</p>
 <table><thead><tr><th>ID</th><th>Asset</th><th>Department</th><th>Classification</th><th>Criticality</th><th>Exposure</th><th>Lab implementation</th></tr></thead><tbody><tr><td>AST-001</td><td>Executive laptops (5)</td><td>Management</td><td>Confidential</td><td>5</td><td>Internal</td><td>Simulated record</td></tr><tr><td>AST-002</td><td>Board and strategy document share</td><td>Management</td><td>Confidential</td><td>5</td><td>Internal</td><td>Simulated record</td></tr><tr><td>AST-003</td><td>HR workstations (5)</td><td>HR</td><td>Confidential</td><td>4</td><td>Internal</td><td>Simulated record</td></tr><tr><td>AST-004</td><td>Employee personnel records</td><td>HR</td><td>Restricted</td><td>5</td><td>Internal</td><td>File share on company server</td></tr><tr><td>AST-005</td><td>Payroll data</td><td>HR / Finance</td><td>Restricted</td><td>5</td><td>Internal</td><td>File share on company server</td></tr><tr><td>AST-006</td><td>Finance workstations (8)</td><td>Finance</td><td>Confidential</td><td>4</td><td>Internal</td><td>Simulated record</td></tr><tr><td>AST-007</td><td>Accounting records and bank payment files</td><td>Finance</td><td>Restricted</td><td>5</td><td>Internal</td><td>File share on company server</td></tr><tr><td>AST-008</td><td>IT workstations (8)</td><td>IT</td><td>Confidential</td><td>4</td><td>Internal</td><td>Simulated record</td></tr><tr><td>AST-009</td><td>Company internal server</td><td>IT</td><td>Restricted</td><td>5</td><td>Internal</td><td>Metasploitable 2 VM (UTM)</td></tr><tr><td>AST-010</td><td>Backup storage</td><td>IT</td><td>Restricted</td><td>4</td><td>Internal</td><td>Simulated record</td></tr><tr><td>AST-011</td><td>Network infrastructure (router, switch)</td><td>IT</td><td>Confidential</td><td>4</td><td>Internal</td><td>Simulated record</td></tr><tr><td>AST-012</td><td>Employee web portal</td><td>Employees (all)</td><td>Confidential</td><td>4</td><td>Remote</td><td>Juice Shop container, 192.168.56.1:3000</td></tr><tr><td>AST-013</td><td>Source code repository</td><td>Employees (Developers)</td><td>Restricted</td><td>5</td><td>Internal</td><td>Directory /srv/repo on company server</td></tr><tr><td>AST-014</td><td>CRM and customer records</td><td>Employees (Sales)</td><td>Confidential</td><td>4</td><td>Internal</td><td>Simulated record</td></tr><tr><td>AST-015</td><td>Support ticket system</td><td>Employees (Support)</td><td>Internal</td><td>3</td><td>Internal</td><td>Simulated record</td></tr><tr><td>AST-016</td><td>Employee workstations (34)</td><td>Employees</td><td>Internal</td><td>3</td><td>Internal</td><td>Simulated record</td></tr><tr><td>AST-017</td><td>Operations shared drive</td><td>Employees (Operations)</td><td>Internal</td><td>3</td><td>Internal</td><td>Directory /srv/operations on company server</td></tr></tbody></table>
@@ -55,11 +78,11 @@ Likelihood and impact (1-5) are recorded for each finding but are not part of th
 <table><thead><tr><th>Control area</th><th>CIS mapping</th><th>Status</th><th>Evidence</th><th>Recommended action</th></tr></thead><tbody><tr><td>Password security</td><td>Control 5 (5.2), Control 6 (6.3, 6.5)</td><td>Non-compliant</td><td>VUL-005; POL-001</td><td>Enforce a password policy and enable MFA for staff and privileged accounts.</td></tr><tr><td>Access control</td><td>Control 6 (6.1, 6.8)</td><td>Non-compliant</td><td>VUL-006; VUL-007</td><td>Remove the NOPASSWD rule and the shared group; review access quarterly.</td></tr><tr><td>Patch management</td><td>Control 7 (7.3)</td><td>Non-compliant</td><td>VUL-002; VUL-003; POL-005</td><td>Adopt a monthly patch cycle and replace end-of-life software.</td></tr><tr><td>Network security</td><td>Control 4 (4.8), Control 12 (12.2)</td><td>Non-compliant</td><td>VUL-001; VUL-004</td><td>Disable Telnet, anonymous FTP and VNC; restrict services to required ports.</td></tr><tr><td>Data protection</td><td>Control 3 (3.1, 3.3)</td><td>Partially compliant</td><td>VUL-008; VUL-012; POL-006</td><td>Enforce the data classification already in the organization record and restrict Restricted data.</td></tr><tr><td>Backup</td><td>Control 11 (11.2)</td><td>Non-compliant</td><td>POL-002</td><td>Define a daily backup schedule for Restricted data and test restores quarterly.</td></tr><tr><td>Security monitoring</td><td>Control 8 (8.2, 8.11)</td><td>Non-compliant</td><td>POL-003</td><td>Centralize logs and review authentication and privilege events weekly.</td></tr><tr><td>Incident response</td><td>Control 17 (17.4)</td><td>Non-compliant</td><td>POL-004</td><td>Write an incident-response plan with contacts and test it annually.</td></tr></tbody></table>
 
 <h2>7. Services on the company server (last scan)</h2>
-<table><thead><tr><th>Port</th><th>Protocol</th><th>Service</th><th>Version</th><th>Scanned</th></tr></thead><tbody><tr><td>22</td><td>tcp</td><td>ssh</td><td>4.7p1 Debian 8ubuntu1</td><td>2026-10-27T05:05:35.141523+00:00</td></tr><tr><td>25</td><td>tcp</td><td>smtp</td><td></td><td>2026-10-27T05:05:35.141523+00:00</td></tr><tr><td>53</td><td>tcp</td><td>domain</td><td>9.4.2</td><td>2026-10-27T05:05:35.141523+00:00</td></tr><tr><td>80</td><td>tcp</td><td>http</td><td>2.2.8</td><td>2026-10-27T05:05:35.141523+00:00</td></tr><tr><td>111</td><td>tcp</td><td>rpcbind</td><td>2</td><td>2026-10-27T05:05:35.141523+00:00</td></tr><tr><td>139</td><td>tcp</td><td>netbios-ssn</td><td>3.X - 4.X</td><td>2026-10-27T05:05:35.141523+00:00</td></tr><tr><td>445</td><td>tcp</td><td>netbios-ssn</td><td>3.X - 4.X</td><td>2026-10-27T05:05:35.141523+00:00</td></tr><tr><td>513</td><td>tcp</td><td>login</td><td></td><td>2026-10-27T05:05:35.141523+00:00</td></tr><tr><td>514</td><td>tcp</td><td>shell</td><td></td><td>2026-10-27T05:05:35.141523+00:00</td></tr><tr><td>2049</td><td>tcp</td><td>nfs</td><td>2-4</td><td>2026-10-27T05:05:35.141523+00:00</td></tr><tr><td>2121</td><td>tcp</td><td>ftp</td><td>1.3.1</td><td>2026-10-27T05:05:35.141523+00:00</td></tr><tr><td>3306</td><td>tcp</td><td>mysql</td><td>5.0.51a-3ubuntu5</td><td>2026-10-27T05:05:35.141523+00:00</td></tr><tr><td>5432</td><td>tcp</td><td>postgresql</td><td>8.3.0 - 8.3.7</td><td>2026-10-27T05:05:35.141523+00:00</td></tr><tr><td>5900</td><td>tcp</td><td>vnc</td><td></td><td>2026-10-27T05:05:35.141523+00:00</td></tr><tr><td>6000</td><td>tcp</td><td>X11</td><td></td><td>2026-10-27T05:05:35.141523+00:00</td></tr><tr><td>8009</td><td>tcp</td><td>ajp13</td><td></td><td>2026-10-27T05:05:35.141523+00:00</td></tr></tbody></table>
+<table><thead><tr><th>Port</th><th>Protocol</th><th>Service</th><th>Version</th><th>Scanned</th></tr></thead><tbody><tr><td>22</td><td>tcp</td><td>ssh</td><td>4.7p1 Debian 8ubuntu1</td><td>2026-10-27T05:13:46.969216+00:00</td></tr><tr><td>25</td><td>tcp</td><td>smtp</td><td></td><td>2026-10-27T05:13:46.969216+00:00</td></tr><tr><td>53</td><td>tcp</td><td>domain</td><td>9.4.2</td><td>2026-10-27T05:13:46.969216+00:00</td></tr><tr><td>80</td><td>tcp</td><td>http</td><td>2.2.8</td><td>2026-10-27T05:13:46.969216+00:00</td></tr><tr><td>111</td><td>tcp</td><td>rpcbind</td><td>2</td><td>2026-10-27T05:13:46.969216+00:00</td></tr><tr><td>139</td><td>tcp</td><td>netbios-ssn</td><td>3.X - 4.X</td><td>2026-10-27T05:13:46.969216+00:00</td></tr><tr><td>445</td><td>tcp</td><td>netbios-ssn</td><td>3.X - 4.X</td><td>2026-10-27T05:13:46.969216+00:00</td></tr><tr><td>513</td><td>tcp</td><td>login</td><td></td><td>2026-10-27T05:13:46.969216+00:00</td></tr><tr><td>514</td><td>tcp</td><td>shell</td><td></td><td>2026-10-27T05:13:46.969216+00:00</td></tr><tr><td>2049</td><td>tcp</td><td>nfs</td><td>2-4</td><td>2026-10-27T05:13:46.969216+00:00</td></tr><tr><td>2121</td><td>tcp</td><td>ftp</td><td>1.3.1</td><td>2026-10-27T05:13:46.969216+00:00</td></tr><tr><td>3306</td><td>tcp</td><td>mysql</td><td>5.0.51a-3ubuntu5</td><td>2026-10-27T05:13:46.969216+00:00</td></tr><tr><td>5432</td><td>tcp</td><td>postgresql</td><td>8.3.0 - 8.3.7</td><td>2026-10-27T05:13:46.969216+00:00</td></tr><tr><td>5900</td><td>tcp</td><td>vnc</td><td></td><td>2026-10-27T05:13:46.969216+00:00</td></tr><tr><td>6000</td><td>tcp</td><td>X11</td><td></td><td>2026-10-27T05:13:46.969216+00:00</td></tr><tr><td>8009</td><td>tcp</td><td>ajp13</td><td></td><td>2026-10-27T05:13:46.969216+00:00</td></tr></tbody></table>
 
 <h2>8. Remediation and posture over time</h2>
 <p>Posture = 100 x (1 - open risk / total maximum risk). Each finding&#x27;s risk is its CVSS v3.1 base score x (asset criticality / 5) x exposure factor. Its maximum is CVSS 10 on the same asset. Resolved findings still count toward the maximum, so fixing a finding raises the score. This is a prototype indicator, not a certified security rating.</p>
-<table><thead><tr><th>Snapshot</th><th>Score</th><th>Rating</th><th>Open findings</th><th>Taken</th></tr></thead><tbody><tr><td>After remediation</td><td>33</td><td>Critical</td><td>24</td><td>2026-10-27T05:05:35.150149+00:00</td></tr><tr><td>Before remediation</td><td>25</td><td>Critical</td><td>27</td><td>2026-10-27T05:05:14.719508+00:00</td></tr></tbody></table>
+<table><thead><tr><th>Snapshot</th><th>Score</th><th>Rating</th><th>Open findings</th><th>Taken</th></tr></thead><tbody><tr><td>After remediation</td><td>33</td><td>Critical</td><td>24</td><td>2026-10-27T05:13:46.977463+00:00</td></tr><tr><td>Before remediation</td><td>25</td><td>Critical</td><td>27</td><td>2026-10-27T05:13:16.631428+00:00</td></tr></tbody></table>
 <p>Remediation items are listed in the Remediation column of section 4. Items marked
 Resolved were fixed on the company server and re-tested.</p>
 
@@ -72,4 +95,4 @@ for the exact versions detected.</li>
 <li>Web testing used Nmap HTTP scripts and curl. OWASP ZAP and Burp Suite were not used.</li>
 <li>The company server is intentionally vulnerable and is isolated from other networks.</li>
 </ul>
-</body></html>
+</div></body></html>

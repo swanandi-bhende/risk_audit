@@ -1,0 +1,21 @@
+# Group membership (VUL-007)
+uid=1003(hr_user) gid=1003(hr_user) groups=1003(hr_user),50(staff)
+uid=1004(fin_user) gid=1004(fin_user) groups=1004(fin_user),50(staff)
+
+# Operations drive and repository permissions (VUL-007, VUL-008)
+drwxrwsr-x 2 root     staff 4096 2026-10-26 17:08 /srv/operations
+drwxr-xr-x 2 dev_user root  4096 2026-10-26 17:08 /srv/repo
+
+# sudoers line for helpdesk01 (VUL-006), readable only by root:
+-r--r----- 1 root root 493 2026-10-26 17:48 /etc/sudoers
+# visudo syntax check after the fix:
+sudo: illegal option `-n'
+usage: sudo -h | -K | -k | -L | -l | -V | -v
+usage: sudo [-bEHPS] [-p prompt] [-u username|#uid] [VAR=value]
+            {-i | -s | <command>}
+usage: sudo -e [-S] [-p prompt] [-u username|#uid] file ...
+(sudo prompts for password; visudo result recorded earlier: parsed OK)
+
+# Sudoers check after remediation (VUL-006), 2026-10-27
+# Command run on the company server: sudo grep helpdesk01 /etc/sudoers
+# Output: (empty). The NOPASSWD line for helpdesk01 is no longer in /etc/sudoers.

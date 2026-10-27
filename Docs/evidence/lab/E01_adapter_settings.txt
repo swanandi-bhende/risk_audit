@@ -1,0 +1,10 @@
+# E-01: VirtualBox adapter settings (Kali Linux VM)
+Tue Oct 27 11:05:12 IST 2026
+natnet1="nat"
+cableconnected1="on"
+nic1="nat"
+cableconnected2="on"
+nic2="hostonlynetwork"
+
+# UTM network mode (Metasploitable 2, from the UTM config)
+[{'PortForward': [], 'MacAddress': '4A:1E:CD:E5:4A:BB', 'Hardware': 'e1000', 'Mode': 'Host', 'IsolateFromHost': False}]

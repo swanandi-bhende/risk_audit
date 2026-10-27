@@ -3,178 +3,588 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SecureTech | Security Operations</title>
+  <title>SecureTech | Security posture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
   <style>
+    /* Light theme. The four brand colours are used as-is; panels and rules are tints of them. */
+    :root {
+      --ink: #E5D0CC;
+      --slate: #444554;
+      --mist: #7F7B82;
+      --blush: #172121;
+      --panel: color-mix(in srgb, #ffffff 45%, var(--ink));
+      --line: color-mix(in srgb, var(--mist) 45%, var(--ink));
+      --text: #172121;
+      --muted: #444554;
+      --radius: 4px;
+      --serif: "Instrument Serif", Georgia, serif;
+      --sans: "Instrument Sans", system-ui, -apple-system, sans-serif;
+      color-scheme: light;
+    }
+
     * { box-sizing: border-box; }
+
+    html { -webkit-text-size-adjust: 100%; }
+
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0b1120;
-      color: #e5e7eb;
+      background: var(--ink);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.55;
     }
-    header {
-      padding: 22px 30px;
-      background: #111a2e;
-      border-bottom: 1px solid #253149;
+
+    :focus-visible {
+      outline: 2px solid var(--blush);
+      outline-offset: 3px;
     }
-    header h1 { margin: 0; font-size: 23px; }
-    header p { color: #9caec8; margin-bottom: 0; }
-    main { max-width: 1200px; margin: auto; padding: 25px; }
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+
+    .page {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 24px 96px;
+    }
+
+    /* Header */
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
       gap: 16px;
+      padding: 24px 0;
+      border-bottom: 1px solid var(--line);
     }
-    .card, .panel {
-      background: #111a2e;
-      border: 1px solid #253149;
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 18px;
+    .brand {
+      font-family: var(--serif);
+      font-size: 24px;
+      line-height: 1;
+      color: var(--text);
+      margin: 0;
     }
-    .muted { color: #9caec8; font-size: 13px; }
-    .number { font-size: 30px; font-weight: bold; margin-top: 12px; }
-    button, a.button {
-      border: 0; border-radius: 7px; padding: 11px 16px;
-      background: #60a5fa; color: #071426; font-weight: bold;
-      cursor: pointer; margin: 4px 5px 4px 0; text-decoration: none;
-      display: inline-block; font-size: 14px;
+    .brand span { color: var(--mist); }
+    .status-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 14px;
     }
-    button.secondary, a.secondary { background: #26364f; color: #e5e7eb; }
-    button:disabled { opacity: .6; cursor: wait; }
-    select, input {
-      background: #0b1120; color: #e5e7eb; border: 1px solid #253149;
-      border-radius: 6px; padding: 8px; font-size: 14px; margin: 4px 5px 4px 0;
+    .status-line::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--blush);
     }
-    .status { color: #86efac; }
-    .error { color: #fca5a5; }
-    .warn { color: #fcd34d; }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    .status-line[data-state="offline"]::before { background: var(--mist); }
+
+    /* Hero: posture */
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+      gap: 40px;
+      align-items: end;
+      padding: 56px 0 48px;
+      border-bottom: 1px solid var(--line);
+    }
+    .score {
+      font-family: var(--serif);
+      font-size: clamp(96px, 16vw, 168px);
+      line-height: 0.85;
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+    .score small {
+      display: block;
+      font-family: var(--sans);
+      font-size: 16px;
+      letter-spacing: 0;
+      color: var(--muted);
+      margin-top: 16px;
+    }
+    .verdict h1 {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(32px, 4.5vw, 44px);
+      line-height: 1.1;
+      margin: 0 0 16px;
+    }
+    .verdict p {
+      margin: 0 0 24px;
+      color: var(--muted);
+      max-width: 60ch;
+    }
+    .bar {
+      position: relative;
+      height: 8px;
+      background: var(--line);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 0;
+      background: var(--blush);
+      transition: width 900ms cubic-bezier(.2, .7, .2, 1);
+    }
+    .bar-scale {
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .bar-scale .threshold {
+      position: absolute;
+      left: 40%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+
+    /* Key numbers */
+    .figures {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0;
+      padding: 32px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .figure {
+      padding: 0 24px;
+      border-left: 1px solid var(--line);
+    }
+    .figure:first-child { padding-left: 0; border-left: 0; }
+    .figure dt {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+    .figure dd {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: 40px;
+      line-height: 1.1;
+    }
+
+    /* Sections */
+    section {
+      padding: 56px 0 8px;
+    }
+    section + section {
+      border-top: 1px solid var(--line);
+      margin-top: 48px;
+    }
+    .section-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px 24px;
+      margin-bottom: 8px;
+    }
+    h2 {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: 32px;
+      line-height: 1.15;
+      margin: 0;
+    }
+    .lede {
+      color: var(--muted);
+      margin: 8px 0 24px;
+      max-width: 68ch;
+    }
+
+    /* Actions */
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin: 24px 0 0;
+    }
+    button, .button {
+      font: inherit;
+      font-weight: 600;
+      font-size: 15px;
+      line-height: 1;
+      padding: 12px 18px;
+      border-radius: var(--radius);
+      border: 1px solid var(--blush);
+      background: var(--blush);
+      color: var(--ink);
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+    }
+    button.quiet, .button.quiet {
+      background: transparent;
+      color: var(--text);
+      border-color: var(--line);
+    }
+    button:hover, .button:hover { filter: brightness(1.08); }
+    button.quiet:hover, .button.quiet:hover { border-color: var(--blush); filter: none; }
+    button:disabled { opacity: .5; cursor: wait; }
+
+    input, select {
+      font: inherit;
+      font-size: 15px;
+      min-height: 44px;
+      padding: 10px 12px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      max-width: 100%;
+    }
+    input::placeholder { color: var(--muted); }
+
+    .message {
+      margin: 24px 0 0;
+      font-size: 15px;
+      min-height: 1.5em;
+    }
+    .message[data-kind="ok"] { color: var(--text); }
+    .message[data-kind="error"] { color: var(--text); font-weight: 600; }
+    .message[data-kind="busy"] { color: var(--muted); }
+
+    /* Tables */
+    .table-wrap {
+      overflow-x: auto;
+      margin: 0 -4px;
+      padding: 0 4px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 15px;
+    }
     th, td {
-      padding: 10px 8px; text-align: left;
-      border-bottom: 1px solid #253149; font-size: 13px;
-      overflow-wrap: anywhere; vertical-align: top;
+      text-align: left;
+      vertical-align: top;
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--line);
     }
-    th { color: #9caec8; }
-    .scroll { overflow-x: auto; }
-    .empty { color: #9caec8; font-size: 13px; padding-top: 12px; }
-    @media (max-width: 600px) { main { padding: 14px; } }
+    th {
+      font-weight: 500;
+      font-size: 14px;
+      color: var(--muted);
+      padding-top: 0;
+    }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    td.wrap { min-width: 220px; }
+    .detail {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    /* Priority rail: the left edge of each finding shows its priority */
+    tr.finding td:first-child {
+      box-shadow: inset 3px 0 0 var(--rail, var(--line));
+      padding-left: 16px;
+    }
+    tr.finding[data-priority="P1"] { --rail: var(--blush); }
+    tr.finding[data-priority="P2"] { --rail: color-mix(in srgb, var(--blush) 65%, var(--ink)); }
+    tr.finding[data-priority="P3"] { --rail: var(--mist); }
+    tr.finding[data-priority="P4"] { --rail: var(--slate); }
+    .priority {
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    tr.finding[data-priority="P1"] .priority { color: var(--text); }
+    tr.finding[data-priority="P4"] .priority { color: var(--muted); }
+    tr.resolved td { color: var(--muted); }
+    tr.resolved td:first-child { text-decoration: line-through; text-decoration-color: var(--line); }
+
+    select {
+      padding: 6px 10px;
+      min-height: 36px;
+      font-size: 14px;
+    }
+
+    /* Compliance */
+    .state {
+      display: inline-block;
+      font-size: 14px;
+      padding: 2px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      white-space: nowrap;
+    }
+    .state[data-state="Non-compliant"] { background: var(--blush); color: var(--ink); border-color: var(--blush); font-weight: 600; }
+    .state[data-state="Partially compliant"] { border-color: var(--blush); color: var(--text); }
+    .state[data-state="Compliant"] { color: var(--muted); }
+
+    /* Two columns for secondary panels */
+    .split {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 48px;
+    }
+
+    .empty {
+      color: var(--muted);
+      margin: 16px 0 0;
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+
+    details {
+      margin-top: 8px;
+    }
+    summary {
+      cursor: pointer;
+      font-family: var(--serif);
+      font-size: 24px;
+      padding: 8px 0;
+      list-style-position: outside;
+    }
+    summary:focus-visible { outline-offset: 4px; }
+
+    .footnote {
+      margin-top: 56px;
+      color: var(--muted);
+      font-size: 14px;
+      max-width: 72ch;
+    }
+
+    .reveal {
+      animation: rise 700ms cubic-bezier(.2, .7, .2, 1) both;
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    @media (max-width: 860px) {
+      .hero { grid-template-columns: 1fr; gap: 24px; padding: 40px 0 32px; }
+      .figures { grid-template-columns: 1fr 1fr; row-gap: 24px; }
+      .figure:nth-child(3) { padding-left: 0; border-left: 0; }
+      .split { grid-template-columns: 1fr; gap: 0; }
+      .split > div + div { margin-top: 56px; }
+    }
+
+    @media (max-width: 560px) {
+      .page { padding: 0 16px 72px; }
+      .figures { grid-template-columns: 1fr; }
+      .figure { padding: 16px 0; border-left: 0; border-top: 1px solid var(--line); }
+      .figure:first-child { border-top: 0; }
+      h2 { font-size: 28px; }
+      th, td { padding: 12px 8px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
   </style>
 </head>
 <body>
-  <header>
-    <h1>SecureTech <span style="color:#60a5fa">/</span> Security Center</h1>
-    <p>Vulnerability Assessment and Compliance Audit · Simulated organization · Lab environment</p>
-  </header>
+  <div class="page">
+    <header class="topbar">
+      <p class="brand">SecureTech <span>security posture</span></p>
+      <p class="status-line" id="apiStatus" data-state="checking">Checking the service</p>
+    </header>
 
-  <main>
-    <section class="cards">
-      <div class="card">
-        <div class="muted">POSTURE SCORE</div>
-        <div class="number" id="posture">—</div>
-        <div class="muted" id="postureRating"></div>
+    <div class="hero reveal">
+      <p class="score" aria-label="Posture score">
+        <span id="posture">—</span>
+        <small>out of 100</small>
+      </p>
+      <div class="verdict">
+        <h1 id="verdictTitle">Loading the assessment</h1>
+        <p id="verdictText">Scores are computed from CVSS v3.1 vectors, asset criticality and exposure.</p>
+        <div class="bar" role="img" aria-label="Posture as a bar from 0 to 100">
+          <div class="bar-fill" id="barFill"></div>
+        </div>
+        <div class="bar-scale" aria-hidden="true">
+          <span>0</span>
+          <span class="threshold">Critical below 40</span>
+          <span>100</span>
+        </div>
       </div>
-      <div class="card">
-        <div class="muted">OPEN FINDINGS</div>
-        <div class="number" id="open">—</div>
-      </div>
-      <div class="card">
-        <div class="muted">P1 / P2 PRIORITY</div>
-        <div class="number" id="urgent">—</div>
-      </div>
-      <div class="card">
-        <div class="muted">OPEN PORTS (COMPANY SERVER)</div>
-        <div class="number" id="services">—</div>
-        <div class="muted" id="portsTime"></div>
-      </div>
-    </section>
+    </div>
 
-    <section class="panel">
-      <h2>Assessment Controls</h2>
-      <p class="muted">API status: <span id="apiStatus">checking…</span></p>
-      <div>
-        <select id="targetSelect" aria-label="Scan target"></select>
-        <button id="scanBtn" onclick="runScan()">Run Nmap service scan</button>
+    <dl class="figures reveal">
+      <div class="figure">
+        <dt>Open findings</dt>
+        <dd id="open">—</dd>
       </div>
-      <div>
-        <button class="secondary" onclick="simulate()">Record test event</button>
-        <button class="secondary" onclick="refreshData()">Refresh dashboard</button>
-        <a class="button" href="/api/report" target="_blank" rel="noopener">Open VAPT report</a>
+      <div class="figure">
+        <dt>Priority P1 and P2</dt>
+        <dd id="urgent">—</dd>
       </div>
-      <div>
-        <input id="snapshotLabel" placeholder="Snapshot label, e.g. Before remediation" aria-label="Snapshot label">
-        <button class="secondary" onclick="saveSnapshot()">Save posture snapshot</button>
+      <div class="figure">
+        <dt>Open ports on the company server</dt>
+        <dd id="services">—</dd>
       </div>
-      <p id="message" class="muted">Waiting for assessment.</p>
-      <p class="muted">Service discovery with Nmap is not a full vulnerability scan. Simulated events are labelled as such.</p>
-    </section>
+    </dl>
 
-    <section class="panel">
-      <h2>Findings (ranked by risk)</h2>
-      <p class="muted">Risk = CVSS v3.1 base score × asset criticality ÷ 5 × exposure factor. P1 ≥ 7.0, P2 ≥ 5.0, P3 ≥ 3.0, P4 below 3.0. Hover a CVSS score to see its vector.</p>
-      <div class="scroll">
+    <section id="findings-section">
+      <div class="section-head">
+        <h2>Findings to fix first</h2>
+      </div>
+      <p class="lede">Ranked by risk: CVSS v3.1 score × asset criticality ÷ 5 × exposure factor. P1 is 7.0 or higher, P2 is 5.0 or higher, P3 is 3.0 or higher, and P4 is below 3.0. Hover a CVSS score to see its vector.</p>
+      <div class="table-wrap">
         <table>
-          <thead><tr><th>#</th><th>Asset</th><th>Finding</th><th>CVSS</th><th>Risk</th><th>Priority</th><th>Status</th><th>Remediation</th></tr></thead>
+          <thead>
+            <tr>
+              <th scope="col">Finding</th>
+              <th scope="col" class="num">CVSS</th>
+              <th scope="col" class="num">Risk</th>
+              <th scope="col">Priority</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
           <tbody id="findings"></tbody>
         </table>
       </div>
-      <p id="noFindings" class="empty" hidden>No findings yet.</p>
+      <p id="noFindings" class="empty" hidden>No findings yet. Scan the company server to find services.</p>
     </section>
 
-    <section class="panel">
-      <h2>Compliance audit (CIS Controls v8)</h2>
-      <p class="muted" id="complianceCounts"></p>
-      <div class="scroll">
+    <section id="actions-section">
+      <div class="section-head">
+        <h2>Run an assessment</h2>
+      </div>
+      <p class="lede">Scans only reach the company server. Service discovery is not a full vulnerability scan.</p>
+      <div class="actions">
+        <label class="visually-hidden" for="targetSelect">Scan target</label>
+        <select id="targetSelect"></select>
+        <button id="scanBtn" type="button">Scan for open services</button>
+        <button class="quiet" type="button" onclick="simulate()">Record simulated event</button>
+        <button class="quiet" type="button" onclick="refreshData()">Refresh</button>
+      </div>
+      <div class="actions">
+        <label class="visually-hidden" for="snapshotLabel">Snapshot name</label>
+        <input id="snapshotLabel" placeholder="Name this snapshot, for example Before fixes" maxlength="80">
+        <button class="quiet" type="button" onclick="saveSnapshot()">Save posture snapshot</button>
+        <a class="button quiet" href="/api/report" target="_blank" rel="noopener">Open report</a>
+      </div>
+      <p id="message" class="message" role="status" data-kind="busy">Waiting for the first refresh.</p>
+    </section>
+
+    <section id="compliance-section">
+      <div class="section-head">
+        <h2>Compliance audit</h2>
+      </div>
+      <p class="lede" id="complianceCounts"></p>
+      <div class="table-wrap">
         <table>
-          <thead><tr><th>Control area</th><th>CIS mapping</th><th>Status</th><th>Evidence</th><th>Recommended action</th></tr></thead>
+          <thead>
+            <tr>
+              <th scope="col">Control area</th>
+              <th scope="col">Status</th>
+              <th scope="col">Evidence</th>
+              <th scope="col">Recommended action</th>
+            </tr>
+          </thead>
           <tbody id="compliance"></tbody>
         </table>
       </div>
     </section>
 
-    <section class="panel">
-      <h2>Asset inventory</h2>
-      <div class="scroll">
+    <section id="history-section" class="split">
+      <div>
+        <div class="section-head">
+          <h2>Posture over time</h2>
+        </div>
+        <p class="lede" id="postureMethod"></p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Snapshot</th>
+                <th scope="col" class="num">Score</th>
+                <th scope="col">Rating</th>
+                <th scope="col" class="num">Open</th>
+              </tr>
+            </thead>
+            <tbody id="snapshots"></tbody>
+          </table>
+        </div>
+        <p id="noSnapshots" class="empty" hidden>No snapshots yet. Save one before and after a fix.</p>
+      </div>
+      <div>
+        <div class="section-head">
+          <h2>Open ports</h2>
+        </div>
+        <p class="lede" id="portsTime">No scan has run yet.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Port</th>
+                <th scope="col">Service</th>
+                <th scope="col">Version</th>
+              </tr>
+            </thead>
+            <tbody id="ports"></tbody>
+          </table>
+        </div>
+        <p id="noPorts" class="empty" hidden>No open ports recorded for the company server.</p>
+      </div>
+    </section>
+
+    <section id="assets-section">
+      <div class="section-head">
+        <h2>Assets</h2>
+      </div>
+      <div class="table-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Asset</th><th>Department</th><th>Classification</th><th>Criticality</th><th>Exposure</th><th>Host</th></tr></thead>
+          <thead>
+            <tr>
+              <th scope="col">Asset</th>
+              <th scope="col">Department</th>
+              <th scope="col">Data</th>
+              <th scope="col" class="num">Criticality</th>
+              <th scope="col">Exposure</th>
+              <th scope="col">Host</th>
+            </tr>
+          </thead>
           <tbody id="assets"></tbody>
         </table>
       </div>
     </section>
 
-    <section class="panel">
-      <h2>Discovered open ports (company server, last scan)</h2>
-      <div class="scroll">
-        <table>
-          <thead><tr><th>Port</th><th>Protocol</th><th>Service</th><th>Version</th></tr></thead>
-          <tbody id="ports"></tbody>
-        </table>
-      </div>
-      <p id="noPorts" class="empty" hidden>No scan results yet. Run a scan on the company server.</p>
+    <section id="audit-section">
+      <details>
+        <summary>Audit trail</summary>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Time</th>
+                <th scope="col">Action</th>
+                <th scope="col">Details</th>
+              </tr>
+            </thead>
+            <tbody id="audit"></tbody>
+          </table>
+        </div>
+      </details>
     </section>
 
-    <section class="panel">
-      <h2>Posture over time</h2>
-      <p class="muted" id="postureMethod"></p>
-      <div class="scroll">
-        <table>
-          <thead><tr><th>Snapshot</th><th>Score</th><th>Rating</th><th>Open findings</th><th>Taken</th></tr></thead>
-          <tbody id="snapshots"></tbody>
-        </table>
-      </div>
-      <p id="noSnapshots" class="empty" hidden>No snapshots yet. Save one before and after remediation.</p>
-    </section>
-
-    <section class="panel">
-      <h2>Audit trail</h2>
-      <div class="scroll">
-        <table>
-          <thead><tr><th>Time</th><th>Action</th><th>Details</th></tr></thead>
-          <tbody id="audit"></tbody>
-        </table>
-      </div>
-    </section>
-  </main>
+    <p class="footnote">Simulated organization for a course project. All hosts are in an isolated lab network. Scores are a prototype indicator, not a certified rating.</p>
+  </div>
 
 <script>
   // Same origin as the page: the FastAPI server also serves this dashboard.
@@ -184,32 +594,31 @@
   function setMessage(text, kind) {
     const message = document.getElementById("message");
     message.textContent = text;
-    message.className = kind || "muted";
+    message.dataset.kind = kind || "ok";
   }
 
-  function cell(value) {
+  function cell(value, className) {
     const td = document.createElement("td");
-    td.textContent = value ?? "";
+    if (className) td.className = className;
+    if (value instanceof Node) {
+      td.appendChild(value);
+    } else {
+      td.textContent = value ?? "";
+    }
     return td;
   }
 
-  function rowOf(tbody, values) {
+  function rowOf(tbody, cells, attributes) {
     const tr = document.createElement("tr");
-    values.forEach(value => {
-      if (value instanceof Node) {
-        const td = document.createElement("td");
-        td.appendChild(value);
-        tr.appendChild(td);
-      } else {
-        tr.appendChild(cell(value));
-      }
-    });
+    Object.entries(attributes || {}).forEach(([key, value]) => tr.setAttribute(key, value));
+    cells.forEach(c => tr.appendChild(c));
     tbody.appendChild(tr);
+    return tr;
   }
 
   async function getJSON(path) {
     const response = await fetch(API + path);
-    if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`);
+    if (!response.ok) throw new Error(`${path} returned HTTP ${response.status}`);
     return response.json();
   }
 
@@ -220,13 +629,13 @@
       body: JSON.stringify(body || {})
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.detail || data.message || "Request failed");
+    if (!response.ok) throw new Error(data.detail || data.message || "The request failed.");
     return data;
   }
 
   function statusSelect(finding) {
     const select = document.createElement("select");
-    select.setAttribute("aria-label", `Status for finding ${finding.id}`);
+    select.setAttribute("aria-label", `Status for ${finding.title}`);
     STATUSES.forEach(status => {
       const option = document.createElement("option");
       option.value = status;
@@ -245,18 +654,27 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status })
       });
-      if (!response.ok) throw new Error("Could not update status");
-      setMessage(`Finding #${id} set to ${status}.`, "status");
+      if (!response.ok) throw new Error("The status could not be saved.");
+      setMessage(`Status set to ${status.toLowerCase()}. The score has been recalculated.`, "ok");
     } catch (error) {
       setMessage(error.message, "error");
     }
     await refreshData();
   }
 
-  function statusClass(status) {
-    if (status === "Non-compliant") return "error";
-    if (status === "Partially compliant") return "warn";
-    return "status";
+  function verdictFor(rating, score) {
+    if (rating === "Good") return "The company server is in good shape.";
+    if (rating === "Moderate") return "The company server needs some fixes.";
+    if (rating === "Poor") return "The company server has serious gaps.";
+    return "The company server is at critical risk.";
+  }
+
+  function fillBar(score) {
+    const fill = document.getElementById("barFill");
+    fill.style.width = "0%";
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => { fill.style.width = `${Math.max(0, Math.min(100, score))}%`; });
+    });
   }
 
   async function refreshData() {
@@ -273,13 +691,21 @@
         getJSON("/api/audit")
       ]);
 
-      document.getElementById("apiStatus").textContent = health.status;
+      const apiStatus = document.getElementById("apiStatus");
+      apiStatus.textContent = "Service running";
+      apiStatus.dataset.state = "ok";
+
       document.getElementById("posture").textContent = posture.score;
-      document.getElementById("postureRating").textContent = posture.rating;
+      document.getElementById("verdictTitle").textContent = `Posture is ${posture.rating.toLowerCase()}`;
+      document.getElementById("verdictText").textContent =
+        `${verdictFor(posture.rating, posture.score)} ${posture.open_findings} findings remain open.`;
+      fillBar(posture.score);
       document.getElementById("postureMethod").textContent = posture.method;
+
       document.getElementById("open").textContent = summary.open_findings;
       document.getElementById("urgent").textContent =
-        (summary.by_priority.P1 || 0) + " / " + (summary.by_priority.P2 || 0);
+        `${(summary.by_priority.P1 || 0) + (summary.by_priority.P2 || 0)}`;
+      document.getElementById("services").textContent = ports.ports.length;
 
       const targetSelect = document.getElementById("targetSelect");
       const previous = targetSelect.value || "AST-009";
@@ -294,62 +720,105 @@
 
       const findingBody = document.getElementById("findings");
       findingBody.replaceChildren();
-      findings.findings.forEach((f, index) => {
-        const cvssCell = document.createElement("span");
-        cvssCell.textContent = f.cvss ?? "—";
-        cvssCell.title = f.cvss_vector || "";
+      findings.findings.forEach(f => {
+        const name = document.createElement("div");
+        name.textContent = f.title;
+        const asset = document.createElement("span");
+        asset.className = "detail";
+        asset.textContent = f.asset;
+        name.appendChild(asset);
+
+        const cvss = document.createElement("span");
+        cvss.textContent = f.cvss ?? "—";
+        cvss.title = f.cvss_vector || "";
+
+        const priority = document.createElement("span");
+        priority.className = "priority";
+        priority.textContent = f.priority || "—";
+
         rowOf(findingBody, [
-          index + 1, f.asset, f.title,
-          cvssCell, f.risk_score ?? "—", f.priority || "—",
-          statusSelect(f), f.recommendation
-        ]);
+          cell(name, "wrap"),
+          cell(cvss, "num"),
+          cell(f.risk_score ?? "—", "num"),
+          cell(priority),
+          cell(statusSelect(f))
+        ], {
+          class: f.status === "Resolved" ? "finding resolved" : "finding",
+          "data-priority": f.priority || "P4"
+        });
       });
       document.getElementById("noFindings").hidden = findings.findings.length > 0;
 
       const complianceBody = document.getElementById("compliance");
       complianceBody.replaceChildren();
       compliance.controls.forEach(c => {
-        const status = document.createElement("span");
-        status.textContent = c.status;
-        status.className = statusClass(c.status);
-        rowOf(complianceBody, [c.area, c.cis_mapping, status, c.evidence, c.recommended_action]);
+        const state = document.createElement("span");
+        state.className = "state";
+        state.dataset.state = c.status;
+        state.textContent = c.status;
+        rowOf(complianceBody, [
+          cell(c.area),
+          cell(state),
+          cell(c.evidence),
+          cell(c.recommended_action)
+        ]);
       });
+      const counts = Object.entries(compliance.counts).map(([k, v]) => `${v} ${k.toLowerCase()}`);
       document.getElementById("complianceCounts").textContent =
-        Object.entries(compliance.counts).map(([k, v]) => `${k}: ${v}`).join(" · ");
+        `${counts.join(", ")} of ${compliance.controls.length} control areas. CIS Controls v8.`;
 
       const assetBody = document.getElementById("assets");
       assetBody.replaceChildren();
       assets.assets.forEach(a => {
         const host = a.ip ? (a.port ? `${a.ip}:${a.port}` : a.ip) : "Simulated record";
-        rowOf(assetBody, [a.id, a.name, a.department, a.classification, a.criticality, a.exposure, host]);
+        rowOf(assetBody, [
+          cell(`${a.id} ${a.name}`),
+          cell(a.department),
+          cell(a.classification),
+          cell(a.criticality, "num"),
+          cell(a.exposure),
+          cell(host)
+        ]);
       });
 
       const portBody = document.getElementById("ports");
       portBody.replaceChildren();
-      ports.ports.forEach(p => rowOf(portBody, [p.port, p.protocol, p.service, p.version]));
-      document.getElementById("services").textContent = ports.ports.length;
+      ports.ports.forEach(p => rowOf(portBody, [
+        cell(`${p.port}/${p.protocol}`),
+        cell(p.service),
+        cell(p.version)
+      ]));
       document.getElementById("noPorts").hidden = ports.ports.length > 0;
       document.getElementById("portsTime").textContent = ports.scanned_at
         ? `Last scan: ${new Date(ports.scanned_at).toLocaleString()}`
-        : "";
+        : "No scan has run yet.";
 
       const snapshotBody = document.getElementById("snapshots");
       snapshotBody.replaceChildren();
-      snapshots.snapshots.forEach(s =>
-        rowOf(snapshotBody, [s.label, s.score, s.rating, s.open_findings, new Date(s.created_at).toLocaleString()])
-      );
+      snapshots.snapshots.forEach(s => rowOf(snapshotBody, [
+        cell(`${s.label}`),
+        cell(s.score, "num"),
+        cell(s.rating),
+        cell(s.open_findings, "num")
+      ]));
       document.getElementById("noSnapshots").hidden = snapshots.snapshots.length > 0;
 
       const auditBody = document.getElementById("audit");
       auditBody.replaceChildren();
-      audit.audit_records.slice(0, 25).forEach(r =>
-        rowOf(auditBody, [new Date(r.created_at).toLocaleString(), r.action, r.details])
-      );
+      audit.audit_records.slice(0, 25).forEach(r => rowOf(auditBody, [
+        cell(new Date(r.created_at).toLocaleString()),
+        cell(r.action),
+        cell(r.details)
+      ]));
 
-      setMessage("Dashboard data refreshed.", "status");
     } catch (error) {
-      document.getElementById("apiStatus").textContent = "Offline";
-      setMessage("Could not reach the backend. Is the server running? " + error.message, "error");
+      const apiStatus = document.getElementById("apiStatus");
+      apiStatus.textContent = "Cannot reach the service";
+      apiStatus.dataset.state = "offline";
+      document.getElementById("verdictTitle").textContent = "The dashboard is offline";
+      document.getElementById("verdictText").textContent =
+        "Start the server, then refresh this page. The server runs on port 8200.";
+      setMessage(`Could not load data: ${error.message}`, "error");
     }
   }
 
@@ -357,28 +826,27 @@
     const button = document.getElementById("scanBtn");
     const assetId = document.getElementById("targetSelect").value;
     button.disabled = true;
-    setMessage("Running service scan… this can take a minute.", "muted");
+    setMessage("Scanning. This takes about a minute.", "busy");
     try {
       const result = await postJSON(`/api/scan/${assetId}`);
-      if (result.status !== "completed") throw new Error(result.message || "Scan failed");
+      if (result.status !== "completed") throw new Error(result.message || "The scan failed.");
       setMessage(
-        `Scan completed: ${result.target} is ${result.host_status}. ` +
-        `${result.open_ports.length} open port(s), ${result.new_findings} new finding(s).`,
-        "status"
+        `Scan finished. ${result.open_ports.length} open ports, ${result.new_findings} new findings.`,
+        "ok"
       );
       await refreshData();
     } catch (error) {
-      setMessage("Scan failed: " + error.message, "error");
+      setMessage(`Scan failed. ${error.message}`, "error");
     } finally {
       button.disabled = false;
     }
   }
 
   async function saveSnapshot() {
-    const label = document.getElementById("snapshotLabel").value || "Snapshot";
+    const label = document.getElementById("snapshotLabel").value.trim() || "Snapshot";
     try {
       const result = await postJSON("/api/posture/snapshots", { label });
-      setMessage(`Saved "${result.label}": score ${result.score} (${result.rating}).`, "status");
+      setMessage(`Saved “${result.label}” at ${result.score} out of 100.`, "ok");
       await refreshData();
     } catch (error) {
       setMessage(error.message, "error");
@@ -392,13 +860,14 @@
         source: "192.168.56.1",
         count: 8
       });
+      setMessage("Simulated event recorded in the findings and the audit trail.", "ok");
       await refreshData();
-      setMessage("Simulated training event recorded in findings and audit trail.", "status");
     } catch (error) {
       setMessage(error.message, "error");
     }
   }
 
+  document.getElementById("scanBtn").addEventListener("click", runScan);
   refreshData();
 </script>
 </body>

@@ -1,0 +1,9 @@
+# E-02: IP addresses
+Tue Oct 27 11:05:22 IST 2026
+## Kali
+lo               UNKNOWN        127.0.0.1/8 ::1/128 
+eth0             UP             10.0.2.15/24 fd17:625c:f037:2:9475:8ddf:b486:98d6/64 fd17:625c:f037:2:a00:27ff:fea5:6bc3/64 fe80::a00:27ff:fea5:6bc3/64 
+eth1             UP             192.168.56.4/24 
+## Metasploitable
+eth0      Link encap:Ethernet  HWaddr 4a:1e:cd:e5:4a:bb  
+          inet addr:192.168.56.10  Bcast:192.168.56.255  Mask:255.255.255.0

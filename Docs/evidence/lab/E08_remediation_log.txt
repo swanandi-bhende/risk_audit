@@ -1,0 +1,28 @@
+# E-08: remediation applied on the company server (192.168.56.10), 27 Oct 2026 (IST)
+# Snapshot before remediation: Docs/evidence/lab/ and ~/SecureTech_Baselines/metasploitable2-baseline-2026-10-27.qcow2
+
+## Fix 1: anonymous FTP (finding VUL-004)
+Commands run on the server (sudo):
+  sed -i 's/anonymous_enable=YES/anonymous_enable=NO/' /etc/vsftpd.conf
+  sed -i 's/disable[[:space:]]*= no/disable = yes/' /etc/xinetd.d/vsftpd
+  kill xinetd and start it again with: xinetd -pidfile /var/run/xinetd.pid -stayalive -inetd_compat
+Observed: anonymous_enable=NO alone did not stop anonymous login, so the vsftpd service was disabled in xinetd.
+Retest: nmap -Pn -p 21 192.168.56.10 -> closed. Anonymous login on port 21 -> connection refused.
+
+## Fix 2: Telnet (finding VUL-001 Telnet part)
+Commands run on the server (sudo):
+  sed -i 's/^telnet/#telnet/' /etc/inetd.conf
+  /etc/init.d/openbsd-inetd restart
+Observed: the inetd entry was already commented out; the running xinetd still held an old Telnet service until it restarted.
+Retest: nmap -Pn -p 23 192.168.56.10 -> closed.
+
+## Fix 3: password-free root for helpdesk01 (finding VUL-006)
+Commands run on the server (sudo):
+  sed -i '/^helpdesk01 ALL=(ALL) NOPASSWD: ALL/d' /etc/sudoers
+  visudo -c -> "/etc/sudoers file parsed OK"
+Retest: sudo grep helpdesk01 /etc/sudoers -> no output.
+
+## Not changed in this round
+- The vsftpd 2.3.4 package (finding VUL-002) is still installed; only its service was disabled.
+- The shared staff group (VUL-007) and the world-readable repository (VUL-008) are unchanged.
+- VNC on port 5900 (VUL-001) is still running.

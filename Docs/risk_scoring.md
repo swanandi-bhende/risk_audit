@@ -156,6 +156,20 @@ Remediation of the three fixed findings raised the posture by 8 points. It stays
 
 ---
 
+## 4.5 Why each weight was chosen
+
+| Weight | Value | Why |
+|---|---|---|
+| Criticality ÷ 5 | 0.2 to 1.0 | Linear, so a criticality-5 asset (company server, repository, payroll) keeps its full CVSS score and a criticality-1 asset is reduced to a fifth. The five levels come from the organization record. |
+| Remote exposure | 1.0 | Reachable from outside the office network, so no reduction. |
+| Internal exposure | 0.8 | Reachable only from the office network. A small reduction, because an internal attacker still needs network access. |
+| Isolated exposure | 0.6 | Defined for completeness; not used by any asset in this lab. |
+| No separate exploitability factor | — | CVSS already includes attack vector, complexity, privileges and user interaction. A second factor would count them twice. |
+| P1 at 7.0 | Threshold | A critical CVSS (9.0 and above) on a criticality-5 asset in an internal network scores 7.2 or more, so P1 means "critical weakness on an important asset". |
+| P2 at 5.0, P3 at 3.0 | Thresholds | Spaced so each band covers roughly two CVSS severity levels after the asset adjustment. |
+
+These weights are judgment calls for a lab. They are not calibrated against incident data. To change one, edit `Backend/risk.py` and rebuild the database so the scores are recalculated.
+
 ## 5. Limits of this method
 
 - **Vectors are assessments.** The assessed findings use vectors chosen for the lab state. The scanner-found services use the assessments in section 1.2. Each should be checked against NVD entries for the exact version before a real assessment.

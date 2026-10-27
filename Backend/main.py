@@ -22,7 +22,7 @@ from risk import (
     priority_for,
     severity_for,
 )
-from seed_data import ASSETS, COMPLIANCE, FINDINGS
+from seed_data import ASSETS, COMPLIANCE, DEPARTMENTS, FINDINGS
 
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "securetech.db"
@@ -140,6 +140,13 @@ def initialize_database():
             )
         """)
         connection.execute("""
+            CREATE TABLE IF NOT EXISTS departments (
+                name TEXT PRIMARY KEY,
+                headcount INTEGER NOT NULL,
+                roles TEXT NOT NULL
+            )
+        """)
+        connection.execute("""
             CREATE TABLE IF NOT EXISTS posture_snapshots (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 label TEXT NOT NULL,
@@ -209,6 +216,11 @@ def seed_if_empty(connection):
     assets_by_id = {asset["id"]: asset for asset in ASSETS}
     for finding in FINDINGS:
         insert_finding(connection, finding, assets_by_id[finding["asset_id"]], "Open", now)
+    for department in DEPARTMENTS:
+        connection.execute(
+            "INSERT INTO departments VALUES (?, ?, ?)",
+            (department["name"], department["headcount"], department["roles"]),
+        )
     for item in COMPLIANCE:
         connection.execute(
             "INSERT INTO compliance VALUES (?, ?, ?, ?, ?)",
@@ -250,6 +262,19 @@ def list_assets():
     with get_connection() as connection:
         rows = connection.execute("SELECT * FROM assets ORDER BY id").fetchall()
     return {"assets": [dict(row) for row in rows]}
+
+
+@app.get("/api/organization")
+def organization():
+    with get_connection() as connection:
+        rows = connection.execute("SELECT * FROM departments ORDER BY rowid").fetchall()
+    departments = [dict(row) for row in rows]
+    return {
+        "name": "SecureTech Solutions",
+        "description": "Simulated small organization for the risk assessment and compliance audit",
+        "total_employees": sum(d["headcount"] for d in departments),
+        "departments": departments,
+    }
 
 
 @app.get("/api/findings")
@@ -630,6 +655,7 @@ def vapt_report():
             ORDER BY (risk_score IS NULL), risk_score DESC, id DESC"""
         ).fetchall()
         compliance = connection.execute("SELECT * FROM compliance ORDER BY rowid").fetchall()
+        departments = connection.execute("SELECT * FROM departments ORDER BY rowid").fetchall()
         snapshots = connection.execute(
             "SELECT * FROM posture_snapshots ORDER BY id DESC"
         ).fetchall()
@@ -667,16 +693,39 @@ def vapt_report():
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SecureTech Solutions: VAPT Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
 <style>
-body {{ font-family: Arial, sans-serif; margin: 32px; color: #111; line-height: 1.4; }}
-h1 {{ font-size: 24px; margin-bottom: 4px; }}
-h2 {{ font-size: 18px; margin-top: 28px; border-bottom: 1px solid #999; padding-bottom: 4px; }}
-table {{ width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }}
-th, td {{ border: 1px solid #bbb; padding: 5px; text-align: left; vertical-align: top; }}
-th {{ background: #eee; }}
-.muted {{ color: #555; font-size: 12px; }}
-@media print {{ body {{ margin: 12mm; }} h2 {{ page-break-after: avoid; }} }}
-</style></head><body>
+:root {{
+  --ink: #172121;
+  --slate: #444554;
+  --mist: #7F7B82;
+  --blush: #E5D0CC;
+  --paper: #E5D0CC;
+  --serif: "Instrument Serif", Georgia, serif;
+  --sans: "Instrument Sans", system-ui, sans-serif;
+}}
+* {{ box-sizing: border-box; }}
+body {{ margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.55; }}
+.sheet {{ max-width: 980px; margin: 0 auto; padding: 48px 40px 64px; }}
+h1 {{ font-family: var(--serif); font-weight: 400; font-size: 44px; line-height: 1.1; margin: 0 0 8px; }}
+h2 {{ font-family: var(--serif); font-weight: 400; font-size: 28px; line-height: 1.2; margin: 48px 0 12px; padding-top: 16px; border-top: 1px solid var(--blush); }}
+p {{ margin: 0 0 12px; max-width: 72ch; }}
+.muted {{ color: var(--slate); font-size: 14px; }}
+.lede {{ font-size: 17px; color: var(--ink); }}
+table {{ width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0 16px; }}
+th, td {{ text-align: left; vertical-align: top; padding: 9px 8px; border-bottom: 1px solid var(--blush); }}
+th {{ font-weight: 600; color: var(--slate); background: transparent; border-bottom: 1px solid var(--mist); }}
+td {{ overflow-wrap: anywhere; }}
+.score {{ font-family: var(--serif); font-size: 64px; line-height: 1; }}
+@media print {{
+  body {{ background: #fff; }}
+  .sheet {{ padding: 0; max-width: none; }}
+  h2 {{ page-break-after: avoid; }}
+  table {{ page-break-inside: auto; }}
+  tr {{ page-break-inside: avoid; }}
+}}
+</style></head><body><div class="sheet">
 <h1>SecureTech Solutions: Vulnerability Assessment and Compliance Audit Report</h1>
 <p class="muted">Generated {generated}. Simulated organization. Lab environment only.</p>
 
@@ -692,8 +741,8 @@ employee web portal, and disable or restrict the VNC, rsh, rlogin, X11, Samba an
 Anonymous FTP, Telnet and password-free sudo have already been fixed on the company server.</p>
 
 <h2>2. Organization profile</h2>
-<p>SecureTech Solutions: 60 employees in five departments (Management 5, HR 5, Finance 8,
-IT 8, Employees 34). Lab network 192.168.56.0/24 (VirtualBox host-only).
+<p>SecureTech Solutions: {sum(d["headcount"] for d in departments)} employees in five departments
+({", ".join(f"{d['name']} {d['headcount']}" for d in departments)}). Lab network 192.168.56.0/24 (VirtualBox host-only).
 Auditor: Kali Linux (192.168.56.4). Company server: Metasploitable 2 (192.168.56.10).
 Employee web portal: OWASP Juice Shop (192.168.56.1:3000).</p>
 {table(["ID", "Asset", "Department", "Classification", "Criticality", "Exposure", "Lab implementation"],
@@ -741,7 +790,7 @@ for the exact versions detected.</li>
 <li>Web testing used Nmap HTTP scripts and curl. OWASP ZAP and Burp Suite were not used.</li>
 <li>The company server is intentionally vulnerable and is isolated from other networks.</li>
 </ul>
-</body></html>"""
+</div></body></html>"""
     return HTMLResponse(html_doc)
 
 

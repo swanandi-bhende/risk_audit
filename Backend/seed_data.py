@@ -64,3 +64,12 @@ REMEDIATION_PLAN = {
     "VUL-001": "Disable Telnet in inetd (or remove the telnetd service).",
     "VUL-006": "Remove the NOPASSWD rule for helpdesk01 from /etc/sudoers.",
 }
+
+# Departments and headcount from the organization record (60 employees in total).
+DEPARTMENTS = [
+    {"name": "Management", "headcount": 5, "roles": "CEO, COO, Operations Director, Executive Assistant, Office Manager"},
+    {"name": "HR", "headcount": 5, "roles": "HR Manager, HR Specialist (2), Recruiter, Payroll Officer"},
+    {"name": "Finance", "headcount": 8, "roles": "Finance Manager, Accountant (3), Accounts Payable Clerk, Accounts Receivable Clerk, Financial Analyst, Procurement Officer"},
+    {"name": "IT", "headcount": 8, "roles": "IT Manager, System Administrator (2), Network Administrator, IT Security Officer, Help Desk Technician (2), Database Administrator"},
+    {"name": "Employees", "headcount": 34, "roles": "Software Developer (12), Sales Representative (8), Customer Support Agent (8), Operations Executive (6)"},
+]

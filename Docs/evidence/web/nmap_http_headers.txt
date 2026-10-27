@@ -1,0 +1,16 @@
+# nmap --script http-headers (-sV for the portal)
+Tuesday 27 October 2026 05:10:19 AM UTC
+## Company server 192.168.56.10:80
+| http-headers: 
+|   Date: Mon, 26 Oct 2026 23:38:38 GMT
+|   Server: Apache/2.2.8 (Ubuntu) DAV/2
+|   X-Powered-By: PHP/5.2.4-2ubuntu5.10
+|   Connection: close
+|   Content-Type: text/html
+|   
+|_  (Request type: HEAD)
+## Web portal 192.168.56.1:3000
+|   GetRequest: 
+|   HTTPOptions, RTSPRequest: 
+|   Help, NCP: 
+|_    Connection: close

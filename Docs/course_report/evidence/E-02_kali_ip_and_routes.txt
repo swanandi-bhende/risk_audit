@@ -1,0 +1,2 @@
+# Kali (auditor) 192.168.56.4, collected 2026-10-27T05:34:09Z
+(eval):1: no such file or directory: ssh -i /Users/swanandibhende/.ssh/securetech_lab_rsa -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa -o BatchMode=yes
