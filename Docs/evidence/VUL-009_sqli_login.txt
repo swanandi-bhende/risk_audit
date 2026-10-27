@@ -1,0 +1,2 @@
+# SQL injection login bypass (VUL-009)
+{"authentication":{"token":"<REDACTED-lab-session-token>","bid":1,"umail":"admin@juice-sh.op"}}

@@ -1,0 +1,16 @@
+# Metasploitable 2 service versions (nmap -sV, 2026-10-26T20:45:42Z)
+Starting Nmap 7.991 ( https://nmap.org ) at 2026-10-27 02:15 +0530
+Nmap scan report for 192.168.56.10
+Host is up (0.0067s latency).
+
+PORT     STATE SERVICE VERSION
+21/tcp   open  ftp     vsftpd 2.3.4
+22/tcp   open  ssh     OpenSSH 4.7p1 Debian 8ubuntu1 (protocol 2.0)
+23/tcp   open  telnet  Linux telnetd
+80/tcp   open  http    Apache httpd 2.2.8 ((Ubuntu) DAV/2)
+3306/tcp open  mysql   MySQL 5.0.51a-3ubuntu5
+5900/tcp open  vnc     VNC (protocol 3.3)
+Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 7.48 seconds

@@ -1,0 +1,18 @@
+# Juice Shop response headers (VUL-013)
+HTTP/1.1 200 OK
+Access-Control-Allow-Origin: *
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+Feature-Policy: payment 'self'
+X-Recruiting: /#/jobs
+Accept-Ranges: bytes
+Cache-Control: public, max-age=0
+Last-Modified: Mon, 26 Oct 2026 19:59:26 GMT
+ETag: W/"2700-1a179cbe0b1"
+Content-Type: text/html; charset=UTF-8
+Content-Length: 9984
+Vary: Accept-Encoding
+Date: Mon, 26 Oct 2026 20:45:50 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+

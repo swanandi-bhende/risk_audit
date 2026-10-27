@@ -1,0 +1,16 @@
+# Password audit of lab accounts (VUL-005)
+# Date: 2026-10-27
+# Source: /etc/shadow copy of the 7 lab accounts only, taken from Metasploitable 2 (192.168.56.10).
+# Tool: John the Ripper 1.9 on Kali Linux. Wordlist: rockyou.txt, no rules.
+# Hash values are not stored in this file.
+#
+# Account      Hash type         Result             Password (lab test value)
+# fin_user     DES (crypt)       cracked            Finance1
+# dev_user     DES (crypt)       cracked            password
+# sales_user   DES (crypt)       cracked            sales123
+# helpdesk01   DES (crypt)       cracked            helpdesk
+# admin_it     DES (crypt)       cracked            admin
+# hr_user      DES (crypt)       not cracked        hr2024 is not in rockyou.txt
+# msfadmin     MD5 ($1$)         not cracked        default VM account, not in rockyou.txt
+#
+# Result: 5 of 7 accounts cracked in about 2 minutes.

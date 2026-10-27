@@ -1,0 +1,9 @@
+# VUL-010: DOM cross-site scripting in Juice Shop product search
+# Test date: 2026-10-27 (local time)
+# Method: browser test against the lab portal at http://192.168.56.1:3000
+# Payload typed into the search query (URL-encoded in the address bar):
+#   <iframe src="javascript:alert('securetech-xss')"></iframe>
+# Result: the page inserted an <iframe> whose src is the javascript: URL.
+#   iframeSrcs = ["javascript:alert('securetech-xss')"]
+#   payload reflected into the DOM = true
+# Conclusion: the search input is rendered without sanitizing, so script can run in the victim's browser.

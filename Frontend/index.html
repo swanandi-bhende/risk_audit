@@ -19,7 +19,7 @@
     }
     header h1 { margin: 0; font-size: 23px; }
     header p { color: #9caec8; margin-bottom: 0; }
-    main { max-width: 1100px; margin: auto; padding: 25px; }
+    main { max-width: 1200px; margin: auto; padding: 25px; }
     .cards {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -34,24 +34,26 @@
     }
     .muted { color: #9caec8; font-size: 13px; }
     .number { font-size: 30px; font-weight: bold; margin-top: 12px; }
-    button {
+    button, a.button {
       border: 0; border-radius: 7px; padding: 11px 16px;
       background: #60a5fa; color: #071426; font-weight: bold;
-      cursor: pointer; margin: 4px 5px 4px 0;
+      cursor: pointer; margin: 4px 5px 4px 0; text-decoration: none;
+      display: inline-block; font-size: 14px;
     }
-    button.secondary { background: #26364f; color: #e5e7eb; }
+    button.secondary, a.secondary { background: #26364f; color: #e5e7eb; }
     button:disabled { opacity: .6; cursor: wait; }
-    select {
+    select, input {
       background: #0b1120; color: #e5e7eb; border: 1px solid #253149;
-      border-radius: 6px; padding: 5px; font-size: 13px;
+      border-radius: 6px; padding: 8px; font-size: 14px; margin: 4px 5px 4px 0;
     }
     .status { color: #86efac; }
     .error { color: #fca5a5; }
+    .warn { color: #fcd34d; }
     table { width: 100%; border-collapse: collapse; margin-top: 12px; }
     th, td {
-      padding: 11px 8px; text-align: left;
+      padding: 10px 8px; text-align: left;
       border-bottom: 1px solid #253149; font-size: 13px;
-      overflow-wrap: anywhere;
+      overflow-wrap: anywhere; vertical-align: top;
     }
     th { color: #9caec8; }
     .scroll { overflow-x: auto; }
@@ -62,15 +64,11 @@
 <body>
   <header>
     <h1>SecureTech <span style="color:#60a5fa">/</span> Security Center</h1>
-    <p>Cybersecurity Risk Assessment &amp; Auditing · Lab Environment</p>
+    <p>Vulnerability Assessment and Compliance Audit · Simulated organization · Lab environment</p>
   </header>
 
   <main>
     <section class="cards">
-      <div class="card">
-        <div class="muted">API STATUS</div>
-        <div class="number" id="apiStatus">Checking…</div>
-      </div>
       <div class="card">
         <div class="muted">POSTURE SCORE</div>
         <div class="number" id="posture">—</div>
@@ -81,58 +79,93 @@
         <div class="number" id="open">—</div>
       </div>
       <div class="card">
-        <div class="muted">OPEN PORTS (LAST SCAN)</div>
+        <div class="muted">P1 / P2 PRIORITY</div>
+        <div class="number" id="urgent">—</div>
+      </div>
+      <div class="card">
+        <div class="muted">OPEN PORTS (COMPANY SERVER)</div>
         <div class="number" id="services">—</div>
+        <div class="muted" id="portsTime"></div>
       </div>
     </section>
 
     <section class="panel">
       <h2>Assessment Controls</h2>
-      <p class="muted" id="target">Target: loading…</p>
-      <button id="scanBtn" onclick="runScan()">Run Nmap Service Scan</button>
-      <button class="secondary" onclick="simulate()">Record Test Event</button>
-      <button class="secondary" onclick="refreshData()">Refresh Dashboard</button>
+      <p class="muted">API status: <span id="apiStatus">checking…</span></p>
+      <div>
+        <select id="targetSelect" aria-label="Scan target"></select>
+        <button id="scanBtn" onclick="runScan()">Run Nmap service scan</button>
+      </div>
+      <div>
+        <button class="secondary" onclick="simulate()">Record test event</button>
+        <button class="secondary" onclick="refreshData()">Refresh dashboard</button>
+        <a class="button" href="/api/report" target="_blank" rel="noopener">Open VAPT report</a>
+      </div>
+      <div>
+        <input id="snapshotLabel" placeholder="Snapshot label, e.g. Before remediation" aria-label="Snapshot label">
+        <button class="secondary" onclick="saveSnapshot()">Save posture snapshot</button>
+      </div>
       <p id="message" class="muted">Waiting for assessment.</p>
-      <p class="muted">
-        The test event is simulated. Nmap service discovery is not a full vulnerability scan.
-      </p>
+      <p class="muted">Service discovery with Nmap is not a full vulnerability scan. Simulated events are labelled as such.</p>
     </section>
 
     <section class="panel">
-      <h2>Asset Inventory</h2>
+      <h2>Findings (ranked by risk)</h2>
+      <p class="muted">Risk = CVSS × asset criticality ÷ 5 × exposure × exploitability. P1 ≥ 7.0, P2 ≥ 5.0, P3 ≥ 3.0, P4 below 3.0.</p>
       <div class="scroll">
         <table>
-          <thead><tr><th>Asset</th><th>IP Address</th><th>Type</th><th>Environment</th></tr></thead>
+          <thead><tr><th>#</th><th>Asset</th><th>Finding</th><th>CVSS</th><th>Risk</th><th>Priority</th><th>Status</th><th>Remediation</th></tr></thead>
+          <tbody id="findings"></tbody>
+        </table>
+      </div>
+      <p id="noFindings" class="empty" hidden>No findings yet.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Compliance audit (CIS Controls v8)</h2>
+      <p class="muted" id="complianceCounts"></p>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Control area</th><th>CIS mapping</th><th>Status</th><th>Evidence</th><th>Recommended action</th></tr></thead>
+          <tbody id="compliance"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Asset inventory</h2>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>ID</th><th>Asset</th><th>Department</th><th>Classification</th><th>Criticality</th><th>Exposure</th><th>Host</th></tr></thead>
           <tbody id="assets"></tbody>
         </table>
       </div>
     </section>
 
     <section class="panel">
-      <h2>Findings &amp; Assessment Results</h2>
-      <div class="scroll">
-        <table>
-          <thead><tr><th>Asset</th><th>Finding</th><th>Severity</th><th>Status</th></tr></thead>
-          <tbody id="findings"></tbody>
-        </table>
-      </div>
-      <p id="noFindings" class="empty" hidden>No findings yet. Run a scan or record a test event.</p>
-    </section>
-
-    <section class="panel">
-      <h2>Discovered Open Ports</h2>
-      <p class="muted" id="portsTime"></p>
+      <h2>Discovered open ports (company server, last scan)</h2>
       <div class="scroll">
         <table>
           <thead><tr><th>Port</th><th>Protocol</th><th>Service</th><th>Version</th></tr></thead>
           <tbody id="ports"></tbody>
         </table>
       </div>
-      <p id="noPorts" class="empty" hidden>No scan results yet.</p>
+      <p id="noPorts" class="empty" hidden>No scan results yet. Run a scan on the company server.</p>
     </section>
 
     <section class="panel">
-      <h2>Audit Trail</h2>
+      <h2>Posture over time</h2>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Snapshot</th><th>Score</th><th>Rating</th><th>Open findings</th><th>Taken</th></tr></thead>
+          <tbody id="snapshots"></tbody>
+        </table>
+      </div>
+      <p id="noSnapshots" class="empty" hidden>No snapshots yet. Save one before and after remediation.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Audit trail</h2>
       <div class="scroll">
         <table>
           <thead><tr><th>Time</th><th>Action</th><th>Details</th></tr></thead>
@@ -147,30 +180,47 @@
   const API = "";
   const STATUSES = ["Open", "In Progress", "Resolved"];
 
+  function setMessage(text, kind) {
+    const message = document.getElementById("message");
+    message.textContent = text;
+    message.className = kind || "muted";
+  }
+
   function cell(value) {
     const td = document.createElement("td");
     td.textContent = value ?? "";
     return td;
   }
 
-  function addRow(tbody, values) {
+  function rowOf(tbody, values) {
     const tr = document.createElement("tr");
-    values.forEach(value => tr.appendChild(
-      value instanceof Node ? wrap(value) : cell(value)
-    ));
+    values.forEach(value => {
+      if (value instanceof Node) {
+        const td = document.createElement("td");
+        td.appendChild(value);
+        tr.appendChild(td);
+      } else {
+        tr.appendChild(cell(value));
+      }
+    });
     tbody.appendChild(tr);
-  }
-
-  function wrap(node) {
-    const td = document.createElement("td");
-    td.appendChild(node);
-    return td;
   }
 
   async function getJSON(path) {
     const response = await fetch(API + path);
     if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`);
     return response.json();
+  }
+
+  async function postJSON(path, body) {
+    const response = await fetch(API + path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body || {})
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || data.message || "Request failed");
+    return data;
   }
 
   function statusSelect(finding) {
@@ -188,7 +238,6 @@
   }
 
   async function updateStatus(id, status) {
-    const message = document.getElementById("message");
     try {
       const response = await fetch(`${API}/api/findings/${id}/status`, {
         method: "PATCH",
@@ -196,123 +245,152 @@
         body: JSON.stringify({ status })
       });
       if (!response.ok) throw new Error("Could not update status");
-      message.textContent = `Finding #${id} set to ${status}.`;
-      message.className = "status";
+      setMessage(`Finding #${id} set to ${status}.`, "status");
     } catch (error) {
-      message.textContent = error.message;
-      message.className = "error";
+      setMessage(error.message, "error");
     }
     await refreshData();
   }
 
+  function statusClass(status) {
+    if (status === "Non-compliant") return "error";
+    if (status === "Partially compliant") return "warn";
+    return "status";
+  }
+
   async function refreshData() {
-    const message = document.getElementById("message");
     try {
-      const [health, assets, summary, posture, findings, ports, audit] = await Promise.all([
+      const [health, posture, summary, assets, findings, compliance, ports, snapshots, audit] = await Promise.all([
         getJSON("/api/health"),
-        getJSON("/api/assets"),
-        getJSON("/api/summary"),
         getJSON("/api/posture"),
+        getJSON("/api/summary"),
+        getJSON("/api/assets"),
         getJSON("/api/findings"),
-        getJSON("/api/ports"),
+        getJSON("/api/compliance"),
+        getJSON("/api/ports?asset_id=AST-009"),
+        getJSON("/api/posture/snapshots"),
         getJSON("/api/audit")
       ]);
 
       document.getElementById("apiStatus").textContent = health.status;
-      document.getElementById("open").textContent = summary.open_findings;
       document.getElementById("posture").textContent = posture.score;
       document.getElementById("postureRating").textContent = posture.rating;
+      document.getElementById("open").textContent = summary.open_findings;
+      document.getElementById("urgent").textContent =
+        (summary.by_priority.P1 || 0) + " / " + (summary.by_priority.P2 || 0);
 
-      const asset = assets.assets[0];
-      document.getElementById("target").textContent =
-        `Target: ${asset.name} · ${asset.ip}`;
-
-      const assetBody = document.getElementById("assets");
-      assetBody.replaceChildren();
-      assets.assets.forEach(a =>
-        addRow(assetBody, [a.name, a.ip, a.type, a.environment])
-      );
+      const targetSelect = document.getElementById("targetSelect");
+      const previous = targetSelect.value || "AST-009";
+      targetSelect.replaceChildren();
+      assets.assets.filter(a => a.scannable).forEach(a => {
+        const option = document.createElement("option");
+        option.value = a.id;
+        option.textContent = `${a.name} (${a.ip})`;
+        targetSelect.appendChild(option);
+      });
+      targetSelect.value = previous;
 
       const findingBody = document.getElementById("findings");
       findingBody.replaceChildren();
-      findings.findings.forEach(f =>
-        addRow(findingBody, [f.asset, f.title, f.severity, statusSelect(f)])
-      );
+      findings.findings.forEach((f, index) => {
+        rowOf(findingBody, [
+          index + 1, f.asset, f.title,
+          f.cvss ?? "—", f.risk_score ?? "—", f.priority || "—",
+          statusSelect(f), f.recommendation
+        ]);
+      });
       document.getElementById("noFindings").hidden = findings.findings.length > 0;
+
+      const complianceBody = document.getElementById("compliance");
+      complianceBody.replaceChildren();
+      compliance.controls.forEach(c => {
+        const status = document.createElement("span");
+        status.textContent = c.status;
+        status.className = statusClass(c.status);
+        rowOf(complianceBody, [c.area, c.cis_mapping, status, c.evidence, c.recommended_action]);
+      });
+      document.getElementById("complianceCounts").textContent =
+        Object.entries(compliance.counts).map(([k, v]) => `${k}: ${v}`).join(" · ");
+
+      const assetBody = document.getElementById("assets");
+      assetBody.replaceChildren();
+      assets.assets.forEach(a => {
+        const host = a.ip ? (a.port ? `${a.ip}:${a.port}` : a.ip) : "Simulated record";
+        rowOf(assetBody, [a.id, a.name, a.department, a.classification, a.criticality, a.exposure, host]);
+      });
 
       const portBody = document.getElementById("ports");
       portBody.replaceChildren();
-      ports.ports.forEach(p =>
-        addRow(portBody, [p.port, p.protocol, p.service, p.version])
-      );
+      ports.ports.forEach(p => rowOf(portBody, [p.port, p.protocol, p.service, p.version]));
       document.getElementById("services").textContent = ports.ports.length;
       document.getElementById("noPorts").hidden = ports.ports.length > 0;
       document.getElementById("portsTime").textContent = ports.scanned_at
         ? `Last scan: ${new Date(ports.scanned_at).toLocaleString()}`
         : "";
 
+      const snapshotBody = document.getElementById("snapshots");
+      snapshotBody.replaceChildren();
+      snapshots.snapshots.forEach(s =>
+        rowOf(snapshotBody, [s.label, s.score, s.rating, s.open_findings, new Date(s.created_at).toLocaleString()])
+      );
+      document.getElementById("noSnapshots").hidden = snapshots.snapshots.length > 0;
+
       const auditBody = document.getElementById("audit");
       auditBody.replaceChildren();
       audit.audit_records.slice(0, 25).forEach(r =>
-        addRow(auditBody, [
-          new Date(r.created_at).toLocaleString(), r.action, r.details
-        ])
+        rowOf(auditBody, [new Date(r.created_at).toLocaleString(), r.action, r.details])
       );
 
-      message.textContent = "Dashboard data refreshed.";
-      message.className = "status";
+      setMessage("Dashboard data refreshed.", "status");
     } catch (error) {
       document.getElementById("apiStatus").textContent = "Offline";
-      message.textContent = "Could not reach the backend. Is Uvicorn running? " + error.message;
-      message.className = "error";
+      setMessage("Could not reach the backend. Is the server running? " + error.message, "error");
     }
   }
 
   async function runScan() {
     const button = document.getElementById("scanBtn");
-    const message = document.getElementById("message");
+    const assetId = document.getElementById("targetSelect").value;
     button.disabled = true;
-    message.textContent = "Running service scan… this can take a minute.";
-    message.className = "muted";
-
+    setMessage("Running service scan… this can take a minute.", "muted");
     try {
-      const response = await fetch(API + "/api/scan", { method: "POST" });
-      const result = await response.json();
-      if (!response.ok || result.status !== "completed") {
-        throw new Error(result.message || "Scan failed");
-      }
-      message.textContent =
+      const result = await postJSON(`/api/scan/${assetId}`);
+      if (result.status !== "completed") throw new Error(result.message || "Scan failed");
+      setMessage(
         `Scan completed: ${result.target} is ${result.host_status}. ` +
-        `${result.open_ports.length} open port(s), ${result.new_findings} new finding(s).`;
-      message.className = "status";
+        `${result.open_ports.length} open port(s), ${result.new_findings} new finding(s).`,
+        "status"
+      );
       await refreshData();
     } catch (error) {
-      message.textContent = "Scan failed: " + error.message;
-      message.className = "error";
+      setMessage("Scan failed: " + error.message, "error");
     } finally {
       button.disabled = false;
     }
   }
 
-  async function simulate() {
-    const message = document.getElementById("message");
+  async function saveSnapshot() {
+    const label = document.getElementById("snapshotLabel").value || "Snapshot";
     try {
-      const response = await fetch(API + "/api/simulate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          event_type: "Repeated failed login",
-          source: "192.168.56.1",
-          count: 8
-        })
-      });
-      if (!response.ok) throw new Error("Could not record event");
+      const result = await postJSON("/api/posture/snapshots", { label });
+      setMessage(`Saved "${result.label}": score ${result.score} (${result.rating}).`, "status");
       await refreshData();
-      message.textContent = "Simulated training event recorded in findings and audit trail.";
-      message.className = "status";
     } catch (error) {
-      message.textContent = error.message;
-      message.className = "error";
+      setMessage(error.message, "error");
+    }
+  }
+
+  async function simulate() {
+    try {
+      await postJSON("/api/simulate", {
+        event_type: "Repeated failed login",
+        source: "192.168.56.1",
+        count: 8
+      });
+      await refreshData();
+      setMessage("Simulated training event recorded in findings and audit trail.", "status");
+    } catch (error) {
+      setMessage(error.message, "error");
     }
   }
 

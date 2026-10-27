@@ -1,0 +1,28 @@
+# Anonymous FTP login (VUL-004), verbose
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying 192.168.56.10:21...
+< 220 (vsFTPd 2.3.4)
+> USER anonymous
+< 331 Please specify the password.
+> PASS 
+< 230 Login successful.
+> PWD
+< 257 "/"
+* Entry path is '/'
+* Request has same path as previous transfer
+> EPSV
+* Connect data stream passively
+* ftp_perform ends with SECONDARY: 0
+< 229 Entering Extended Passive Mode (|||61202|).
+* Connecting to 192.168.56.10 (192.168.56.10) port 61202
+> TYPE A
+< 200 Switching to ASCII mode.
+> LIST
+< 150 Here comes the directory listing.
+* Maxdownload = -1
+{ [0 bytes data]
+* Remembering we are in dir ""
+< 226 Directory send OK.
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+* Connection #0 to host 192.168.56.10 left intact

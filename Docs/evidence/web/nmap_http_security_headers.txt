@@ -1,0 +1,97 @@
+# nmap -sV + http-security-headers: Juice Shop web portal (AST-012)
+Monday 26 October 2026 09:33:08 PM UTC
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-10-27 03:03 +0530
+Nmap scan report for 192.168.56.1
+Host is up (0.00024s latency).
+
+PORT     STATE SERVICE VERSION
+3000/tcp open  ppp?
+| fingerprint-strings: 
+|   GetRequest: 
+|     HTTP/1.1 200 OK
+|     Access-Control-Allow-Origin: *
+|     X-Content-Type-Options: nosniff
+|     X-Frame-Options: SAMEORIGIN
+|     Feature-Policy: payment 'self'
+|     X-Recruiting: /#/jobs
+|     Accept-Ranges: bytes
+|     Cache-Control: public, max-age=0
+|     Last-Modified: Mon, 26 Oct 2026 19:59:26 GMT
+|     ETag: W/"2700-1a179cbe0b1"
+|     Content-Type: text/html; charset=UTF-8
+|     Content-Length: 9984
+|     Vary: Accept-Encoding
+|     Date: Mon, 26 Oct 2026 21:33:22 GMT
+|     Connection: close
+|     <!--
+|     Copyright (c) 2014-2026 Bjoern Kimminich & the OWASP Juice Shop contributors.
+|     SPDX-License-Identifier: MIT
+|     <!doctype html>
+|     <html lang="en" data-beasties-container>
+|     <head>
+|     <meta charset="utf-8">
+|     <title>OWASP Juice Shop</title>
+|     <meta name="description" content="Probably the most modern and sophisticated insecure web application">
+|     <meta name="viewport" content="width=device-width, initial-scale=1">
+|     <link rel="preconnect" href="htt
+|   HTTPOptions, RTSPRequest: 
+|     HTTP/1.1 204 No Content
+|     Access-Control-Allow-Origin: *
+|     Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE
+|     Vary: Access-Control-Request-Headers
+|     Content-Length: 0
+|     Date: Mon, 26 Oct 2026 21:33:22 GMT
+|     Connection: close
+|   Help, NCP: 
+|     HTTP/1.1 400 Bad Request
+|_    Connection: close
+1 service unrecognized despite returning data. If you know the service/version, please submit the following fingerprint at https://nmap.org/cgi-bin/submit.cgi?new-service :
+SF-Port3000-TCP:V=7.99%I=7%D=10/27%Time=6ADFC722%P=aarch64-unknown-linux-g
+SF:nu%r(GetRequest,28B7,"HTTP/1\.1\x20200\x20OK\r\nAccess-Control-Allow-Or
+SF:igin:\x20\*\r\nX-Content-Type-Options:\x20nosniff\r\nX-Frame-Options:\x
+SF:20SAMEORIGIN\r\nFeature-Policy:\x20payment\x20'self'\r\nX-Recruiting:\x
+SF:20/#/jobs\r\nAccept-Ranges:\x20bytes\r\nCache-Control:\x20public,\x20ma
+SF:x-age=0\r\nLast-Modified:\x20Mon,\x2026\x20Oct\x202026\x2019:59:26\x20G
+SF:MT\r\nETag:\x20W/\"2700-1a179cbe0b1\"\r\nContent-Type:\x20text/html;\x2
+SF:0charset=UTF-8\r\nContent-Length:\x209984\r\nVary:\x20Accept-Encoding\r
+SF:\nDate:\x20Mon,\x2026\x20Oct\x202026\x2021:33:22\x20GMT\r\nConnection:\
+SF:x20close\r\n\r\n<!--\n\x20\x20~\x20Copyright\x20\(c\)\x202014-2026\x20B
+SF:joern\x20Kimminich\x20&\x20the\x20OWASP\x20Juice\x20Shop\x20contributor
+SF:s\.\n\x20\x20~\x20SPDX-License-Identifier:\x20MIT\n\x20\x20-->\n\n<!doc
+SF:type\x20html>\n<html\x20lang=\"en\"\x20data-beasties-container>\n<head>
+SF:\n\x20\x20<meta\x20charset=\"utf-8\">\n\x20\x20<title>OWASP\x20Juice\x2
+SF:0Shop</title>\n\x20\x20<meta\x20name=\"description\"\x20content=\"Proba
+SF:bly\x20the\x20most\x20modern\x20and\x20sophisticated\x20insecure\x20web
+SF:\x20application\">\n\x20\x20<meta\x20name=\"viewport\"\x20content=\"wid
+SF:th=device-width,\x20initial-scale=1\">\n\x20\x20<link\x20rel=\"preconne
+SF:ct\"\x20href=\"htt")%r(Help,2F,"HTTP/1\.1\x20400\x20Bad\x20Request\r\nC
+SF:onnection:\x20close\r\n\r\n")%r(NCP,2F,"HTTP/1\.1\x20400\x20Bad\x20Requ
+SF:est\r\nConnection:\x20close\r\n\r\n")%r(HTTPOptions,EA,"HTTP/1\.1\x2020
+SF:4\x20No\x20Content\r\nAccess-Control-Allow-Origin:\x20\*\r\nAccess-Cont
+SF:rol-Allow-Methods:\x20GET,HEAD,PUT,PATCH,POST,DELETE\r\nVary:\x20Access
+SF:-Control-Request-Headers\r\nContent-Length:\x200\r\nDate:\x20Mon,\x2026
+SF:\x20Oct\x202026\x2021:33:22\x20GMT\r\nConnection:\x20close\r\n\r\n")%r(
+SF:RTSPRequest,EA,"HTTP/1\.1\x20204\x20No\x20Content\r\nAccess-Control-All
+SF:ow-Origin:\x20\*\r\nAccess-Control-Allow-Methods:\x20GET,HEAD,PUT,PATCH
+SF:,POST,DELETE\r\nVary:\x20Access-Control-Request-Headers\r\nContent-Leng
+SF:th:\x200\r\nDate:\x20Mon,\x2026\x20Oct\x202026\x2021:33:22\x20GMT\r\nCo
+SF:nnection:\x20close\r\n\r\n");
+MAC Address: 16:7F:CE:0E:33:64 (Unknown)
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 14.10 seconds
+
+# nmap -sV + http-security-headers: company server (AST-009)
+Monday 26 October 2026 09:33:22 PM UTC
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-10-27 03:03 +0530
+Nmap scan report for 192.168.56.10
+Host is up (0.00076s latency).
+
+Bug in http-security-headers: no string output.
+PORT   STATE SERVICE VERSION
+80/tcp open  http    Apache httpd 2.2.8 ((Ubuntu) DAV/2)
+|_http-server-header: Apache/2.2.8 (Ubuntu) DAV/2
+MAC Address: 4A:1E:CD:E5:4A:BB (Unknown)
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 9.87 seconds
