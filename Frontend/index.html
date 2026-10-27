@@ -111,7 +111,7 @@
 
     <section class="panel">
       <h2>Findings (ranked by risk)</h2>
-      <p class="muted">Risk = CVSS × asset criticality ÷ 5 × exposure × exploitability. P1 ≥ 7.0, P2 ≥ 5.0, P3 ≥ 3.0, P4 below 3.0.</p>
+      <p class="muted">Risk = CVSS v3.1 base score × asset criticality ÷ 5 × exposure factor. P1 ≥ 7.0, P2 ≥ 5.0, P3 ≥ 3.0, P4 below 3.0. Hover a CVSS score to see its vector.</p>
       <div class="scroll">
         <table>
           <thead><tr><th>#</th><th>Asset</th><th>Finding</th><th>CVSS</th><th>Risk</th><th>Priority</th><th>Status</th><th>Remediation</th></tr></thead>
@@ -155,6 +155,7 @@
 
     <section class="panel">
       <h2>Posture over time</h2>
+      <p class="muted" id="postureMethod"></p>
       <div class="scroll">
         <table>
           <thead><tr><th>Snapshot</th><th>Score</th><th>Rating</th><th>Open findings</th><th>Taken</th></tr></thead>
@@ -275,6 +276,7 @@
       document.getElementById("apiStatus").textContent = health.status;
       document.getElementById("posture").textContent = posture.score;
       document.getElementById("postureRating").textContent = posture.rating;
+      document.getElementById("postureMethod").textContent = posture.method;
       document.getElementById("open").textContent = summary.open_findings;
       document.getElementById("urgent").textContent =
         (summary.by_priority.P1 || 0) + " / " + (summary.by_priority.P2 || 0);
@@ -293,9 +295,12 @@
       const findingBody = document.getElementById("findings");
       findingBody.replaceChildren();
       findings.findings.forEach((f, index) => {
+        const cvssCell = document.createElement("span");
+        cvssCell.textContent = f.cvss ?? "—";
+        cvssCell.title = f.cvss_vector || "";
         rowOf(findingBody, [
           index + 1, f.asset, f.title,
-          f.cvss ?? "—", f.risk_score ?? "—", f.priority || "—",
+          cvssCell, f.risk_score ?? "—", f.priority || "—",
           statusSelect(f), f.recommendation
         ]);
       });

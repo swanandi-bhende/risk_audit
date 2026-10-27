@@ -1,32 +1,38 @@
 """Risk scoring for SecureTech findings.
 
-    risk = CVSS x (asset criticality / 5) x exposure factor x exploitability factor
+Each finding's CVSS v3.1 base score (see cvss.py) is adjusted for the asset it
+affects:
 
-- CVSS: base score 0-10 (CVSS v3.1), assessed from each finding's vector.
+    risk = CVSS base score x (asset criticality / 5) x exposure factor
+
+- CVSS: base score 0-10 from the finding's vector. CVSS already includes how easy
+  the attack is (attack vector, complexity, privileges, user interaction), so no
+  separate exploitability factor is applied. That avoids counting it twice.
 - Asset criticality: 1-5, from the organization record.
-- Exposure: how reachable the asset is (Remote > Internal > Isolated).
-- Exploitability: 3 = network attack without login, 2 = needs a low-privilege
-  login, 1 = local access or user interaction required.
+- Exposure factor: how reachable the asset is. Remote 1.0, Internal 0.8.
 
 The result is 0-10. Priority bands: P1 >= 7.0, P2 >= 5.0, P3 >= 3.0, P4 below 3.0.
-Likelihood and impact (1-5) are stored for the report but are not part of the
-formula, so the same factor is not counted twice.
+
+Posture is the share of the maximum possible risk that is still open:
+
+    maximum risk for a finding = 10 x (criticality / 5) x exposure factor
+    posture = 100 x (1 - open risk / total maximum risk)
+
+Every finding with a CVSS score counts toward the maximum, including resolved ones,
+so fixing a finding raises the score and new findings lower it.
 """
 
 EXPOSURE_FACTOR = {"Remote": 1.0, "Internal": 0.8, "Isolated": 0.6}
-EXPLOITABILITY_FACTOR = {3: 1.0, 2: 0.9, 1: 0.8}
 
 
-def calculate_risk(cvss, criticality, exposure, exploitability):
+def calculate_risk(cvss, criticality, exposure):
     if cvss is None:
         return None
-    score = (
-        cvss
-        * (criticality / 5)
-        * EXPOSURE_FACTOR[exposure]
-        * EXPLOITABILITY_FACTOR[exploitability]
-    )
-    return round(score, 1)
+    return round(cvss * (criticality / 5) * EXPOSURE_FACTOR[exposure], 1)
+
+
+def maximum_risk(criticality, exposure):
+    return 10 * (criticality / 5) * EXPOSURE_FACTOR[exposure]
 
 
 def priority_for(risk):
@@ -53,11 +59,10 @@ def severity_for(cvss):
     return "Low"
 
 
-POSTURE_SCALE = 0.5
-
-
-def posture_score(risk_total):
-    return max(0, round(100 - risk_total * POSTURE_SCALE))
+def posture_score(open_risk, total_maximum):
+    if total_maximum <= 0:
+        return 100
+    return max(0, round(100 * (1 - open_risk / total_maximum)))
 
 
 def posture_rating(score):
@@ -71,8 +76,9 @@ def posture_rating(score):
 
 
 POSTURE_METHOD = (
-    "Starting score 100 minus half the sum of risk scores for all unresolved findings. "
-    "Each finding's risk score is CVSS x asset criticality x exposure x exploitability. "
-    "The 0.5 scale keeps the score readable for a lab with about 30 findings. "
-    "This is a prototype indicator, not a certified security rating."
+    "Posture = 100 x (1 - open risk / total maximum risk). Each finding's risk is its "
+    "CVSS v3.1 base score x (asset criticality / 5) x exposure factor. Its maximum is "
+    "CVSS 10 on the same asset. Resolved findings still count toward the maximum, so "
+    "fixing a finding raises the score. This is a prototype indicator, not a certified "
+    "security rating."
 )

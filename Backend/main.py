@@ -11,9 +11,12 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from cvss import base_score, exploitability_subscore
 from risk import (
+    EXPOSURE_FACTOR,
     POSTURE_METHOD,
     calculate_risk,
+    maximum_risk,
     posture_rating,
     posture_score,
     priority_for,
@@ -46,9 +49,10 @@ FINDING_COLUMNS = {
     "cve": "TEXT",
     "cwe": "TEXT",
     "cvss": "REAL",
+    "cvss_vector": "TEXT",
     "likelihood": "INTEGER",
     "impact": "INTEGER",
-    "exploitability": "INTEGER",
+    "exploitability": "REAL",
     "exposure": "TEXT",
     "criticality": "INTEGER",
     "risk_score": "REAL",
@@ -150,21 +154,21 @@ def initialize_database():
 
 
 def insert_finding(connection, finding, asset, status, created_at):
+    vector = finding["vector"]
+    cvss = base_score(vector)
     exposure = asset["exposure"]
-    risk = calculate_risk(
-        finding["cvss"], asset["criticality"], exposure, finding["exploitability"]
-    )
+    risk = calculate_risk(cvss, asset["criticality"], exposure)
     connection.execute(
         """INSERT INTO findings
         (asset, category, title, severity, description, recommendation, status,
-         created_at, asset_id, vuln_id, cve, cwe, cvss, likelihood, impact,
+         created_at, asset_id, vuln_id, cve, cwe, cvss, cvss_vector, likelihood, impact,
          exploitability, exposure, criticality, risk_score, priority, evidence, control)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             asset["name"],
             finding["category"],
             finding["title"],
-            severity_for(finding["cvss"]),
+            severity_for(cvss),
             f"{finding.get('cwe') or ''} {finding.get('cve') or ''}".strip()
             or "Assessed weakness",
             finding["recommendation"],
@@ -174,10 +178,11 @@ def insert_finding(connection, finding, asset, status, created_at):
             finding.get("vuln_id"),
             finding.get("cve"),
             finding.get("cwe"),
-            finding["cvss"],
+            cvss,
+            vector,
             finding.get("likelihood"),
             finding.get("impact"),
-            finding["exploitability"],
+            exploitability_subscore(vector),
             exposure,
             asset["criticality"],
             risk,
@@ -281,18 +286,22 @@ def summary():
 
 
 def current_posture(connection):
-    risk_total = connection.execute(
-        "SELECT COALESCE(SUM(risk_score), 0) FROM findings WHERE status != 'Resolved'"
-    ).fetchone()[0]
-    open_count = connection.execute(
-        "SELECT COUNT(*) FROM findings WHERE status != 'Resolved'"
-    ).fetchone()[0]
-    score = posture_score(risk_total)
+    rows = connection.execute(
+        """SELECT status, criticality, exposure, risk_score FROM findings
+        WHERE cvss IS NOT NULL"""
+    ).fetchall()
+    open_risk = sum(row["risk_score"] or 0 for row in rows if row["status"] != "Resolved")
+    total_maximum = sum(
+        maximum_risk(row["criticality"], row["exposure"]) for row in rows
+    )
+    open_count = sum(1 for row in rows if row["status"] != "Resolved")
+    score = posture_score(open_risk, total_maximum)
     return {
         "score": score,
         "rating": posture_rating(score),
         "open_findings": open_count,
-        "risk_total": round(risk_total, 1),
+        "risk_total": round(open_risk, 1),
+        "maximum_risk": round(total_maximum, 1),
         "method": POSTURE_METHOD,
     }
 
@@ -394,13 +403,29 @@ def audit_records():
     return {"audit_records": [dict(row) for row in rows]}
 
 
-def guess_service_cvss(service):
+# CVSS v3.1 vectors for services the scanner finds, by service name. These are
+# assessed per service from the service's typical unauthenticated exposure, not
+# taken from an NVD entry for the detected version. Docs/risk_scoring.md lists each
+# one with its reason. Services not listed here fall back to UNASSESSED_VECTOR.
+SERVICE_VECTORS = {
+    "smtp": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",       # mail relay, availability only
+    "domain": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:N",     # DNS server, poisoning needs timing
+    "rpcbind": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",    # lists RPC services to anyone
+    "netbios-ssn": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",  # Samba 3.x, remote code execution class
+    "rlogin": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",    # trust-based login, no password
+    "rsh": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",       # trust-based shell, no password
+    "nfs": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",       # file share readable without login
+    "ftp": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N",       # ProFTPD, needs a login
+    "postgresql": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",  # database, needs a login
+    "X11": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",       # X server accepts connections without auth
+    "ajp13": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",     # Tomcat AJP connector, Ghostcat class
+}
+UNASSESSED_VECTOR = "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N"
+
+
+def guess_service_vector(service):
     service = SERVICE_ALIASES.get(service, service)
-    if service in HIGH_RISK_SERVICES:
-        return 7.5, 3
-    if service in MEDIUM_RISK_SERVICES:
-        return 5.0, 3
-    return 3.0, 3
+    return SERVICE_VECTORS.get(service, UNASSESSED_VECTOR)
 
 
 def parse_open_ports(xml_text):
@@ -461,15 +486,13 @@ def save_scan(connection, asset, target, ports, scanned_at):
         if already_tracked:
             continue
 
-        cvss, exploitability = guess_service_cvss(item["service"])
         version = item["version"] or "version not detected"
         insert_finding(
             connection,
             {
                 "title": title,
                 "category": "Service discovery",
-                "cvss": cvss,
-                "exploitability": exploitability,
+                "vector": guess_service_vector(item["service"]),
                 "recommendation": "Confirm the service is required. If it is not, "
                                   "stop it or block the port on the host firewall.",
                 "evidence": f"Nmap scan {scanned_at}",
@@ -664,8 +687,9 @@ The security posture score is <b>{posture['score']}/100 ({posture['rating']})</b
 Compliance status: {sum(1 for c in compliance if c['status'] == 'Non-compliant')} of
 {len(compliance)} control areas are non-compliant and
 {sum(1 for c in compliance if c['status'] == 'Partially compliant')} are partially compliant.</p>
-<p>The most urgent actions are to remove the backdoored FTP server, disable anonymous FTP,
-disable Telnet, and fix the SQL injection on the employee web portal.</p>
+<p>The most urgent actions are to remove the vsftpd 2.3.4 backdoor, fix the SQL injection on the
+employee web portal, and disable or restrict the VNC, rsh, rlogin, X11, Samba and AJP services.
+Anonymous FTP, Telnet and password-free sudo have already been fixed on the company server.</p>
 
 <h2>2. Organization profile</h2>
 <p>SecureTech Solutions: 60 employees in five departments (Management 5, HR 5, Finance 8,
@@ -686,13 +710,13 @@ evidence folder. Risk is calculated as described in section 5.</p>
 {table(["ID", "Vuln", "Asset", "Finding", "CVSS", "Risk", "Priority", "Status", "Remediation"], findings_rows)}
 
 <h2>5. Risk method</h2>
-<p>Risk = CVSS x (asset criticality / 5) x exposure factor x exploitability factor.
-Exposure factor: Remote 1.0, Internal 0.8, Isolated 0.6.
-Exploitability factor: 1.0 for network attacks without login, 0.9 for attacks that need a
-low-privilege login, 0.8 for local access or user interaction.
+<p>Each finding is scored with CVSS v3.1 base metrics. The vector for each finding is listed
+in the evidence folder. Risk = CVSS base score x (asset criticality / 5) x exposure factor.
+Exposure factor: Remote 1.0, Internal 0.8. CVSS already includes how easy the attack is, so
+no separate exploitability factor is applied, which avoids counting it twice.
 Priority: P1 at 7.0 or above, P2 at 5.0 or above, P3 at 3.0 or above, P4 below 3.0.
-Likelihood and impact (1-5) are recorded for each finding but are not part of the formula,
-so the same factor is not counted twice.</p>
+Likelihood and impact (1-5) are recorded for each finding but are not part of the formula.</p>
+<p>{escape(POSTURE_METHOD)}</p>
 
 <h2>6. Compliance audit (CIS Controls v8)</h2>
 {table(["Control area", "CIS mapping", "Status", "Evidence", "Recommended action"],
@@ -711,7 +735,9 @@ Resolved were fixed on the company server and re-tested.</p>
 <h2>9. Limitations</h2>
 <ul>
 <li>This is a lab assessment of a simulated organization. Findings are not a certified rating.</li>
-<li>CVSS scores are assessed from vectors and should be checked against NVD.</li>
+<li>CVSS v3.1 base scores are computed from each finding's vector. The vectors for the
+scanner-found services are assessments (see Docs/risk_scoring.md, section 1.2), not NVD entries
+for the exact versions detected.</li>
 <li>Web testing used Nmap HTTP scripts and curl. OWASP ZAP and Burp Suite were not used.</li>
 <li>The company server is intentionally vulnerable and is isolated from other networks.</li>
 </ul>
